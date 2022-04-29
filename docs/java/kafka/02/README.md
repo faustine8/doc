@@ -275,7 +275,7 @@ Interceptor 实现的接口是 `org.apache.kafka.clients.producer.ProducerInterc
 
 负责消息创建，拦截器，序列化器，分区器等操作，并将消息追加到消息收集器 RecodeAccumulator 中;
 
-消息收集器 RecodeAccumulator 为每个分区都维护了一个 Deque<ProducerBatch> 类型的双端队列。
+消息收集器 RecodeAccumulator 为每个分区都维护了一个 `Deque<ProducerBatch>` 类型的双端队列。
 
 ProducerBatch 可以理解为是 ProducerRecord 的集合，批量发送有利于提升吞吐量，降低网络影响;
 由于生产者客户端使用 `java.io.ByteBuffer` 在发送消息之前进行消息保存，并维护了一个 BufferPool 实现 ByteBuffer 的复用; 
