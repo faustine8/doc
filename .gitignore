@@ -1,5 +1,15 @@
+# IntelliJ project files
+.idea
+*.iml
+out
+gen
+
 node_modules
 .temp
 .cache
 
-.idea
+# Software tmp dir
+software
+
+# Drawio
+*.bkp

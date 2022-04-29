@@ -1,10 +1,9 @@
 const { defaultTheme } = require('vuepress')
 const { searchPlugin } = require('@vuepress/plugin-search')
-const { prismjsPlugin } = require('@vuepress/plugin-prismjs')
 
 module.exports = {
     lang: 'zh-CN',
-    title: '知识库',
+    title: 'zmn.cn',
     description: '后端开发知识库',
     base: '/doc/',
 
@@ -14,33 +13,73 @@ module.exports = {
         logo: 'https://cdn-statics.zmn.cn/_nuxt/img/logo_web.b793f2a.png',
         // 仓库地址
         repo: 'faustine8/doc',
-        repoLabel: '报告问题',
+        repoLabel: 'GitHub',
         // 文档路径
         docsDir: 'docs',
-        editLinkText: '修改此页',
+        editLinkText: '在 GitHub 上编辑',
         lastUpdatedText: '更新时间',
-        contributorsText: '作者',
+        contributorsText: '贡献者',
         // 导航
         navbar: [
             {
                 text: '首页',
                 link: '/',
             },
+            {
+                text: 'Java',
+                children: [
+                    {
+                        text: 'Kafka',
+                        link: '/java/kafka/01/'
+                    },
+                    {
+                        text: 'Redis',
+                        link: '/java/redis/02/'
+                    },
+                    {
+                        text: 'SkyWalking',
+                        link: '/java/skywalking/01/'
+                    },
+                    {
+                        text: 'ElasticSearch',
+                        link: '/java/es/01/'
+                    },
+                    {
+                        text: 'Drools',
+                        link: '/java/drools/'
+                    },
+                ],
+            },
+            {
+                text: 'BigData',
+                children: [
+                    {
+                        text: 'Hadoop',
+                        link: '/bigdata/hadoop/core/hadoop/01/'
+                    },
+                    {
+                        text: 'Scala',
+                        link: '/bigdata/scala/01base/'
+                    },
+                    {
+                        text: 'Spark',
+                        link: '/bigdata/spark/core/base/'
+                    },
+                ],
+            },
+
         ],
     }),
 
     // 插件
     plugins: [
+        // 搜索
         searchPlugin({
             locales: {
                 '/': {
                     placeholder: '搜索',
                 }
             }
-        }),
-        prismjsPlugin({
-            // 配置项
-            preloadLanguages: ['java', 'javadoc', 'c', 'scala', 'go', 'sql', 'shell-session']
         }),
     ],
 

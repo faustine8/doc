@@ -321,7 +321,7 @@
     "@vuepress/utils" "2.0.0-beta.41"
     chokidar "^3.5.3"
 
-"@vuepress/plugin-prismjs@2.0.0-beta.41", "@vuepress/plugin-prismjs@^2.0.0-beta.41":
+"@vuepress/plugin-prismjs@2.0.0-beta.41":
   version "2.0.0-beta.41"
   resolved "https://registry.npmmirror.com/@vuepress/plugin-prismjs/-/plugin-prismjs-2.0.0-beta.41.tgz#992819dc2181dc13568b28c85e2ec6d31a91555a"
   integrity sha512-y7JpYsygyXKl317CESkfsDeSQ6vGB8sKkKFCrs4Q57AmfeJtdggflBzwjBheNtjJeGiQ4eFit2CJjENaCddbcA==
