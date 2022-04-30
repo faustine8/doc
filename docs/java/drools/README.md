@@ -1,7 +1,7 @@
 ---
 lang: zh-CN
-title: Drools 入门
-description: Drools 入门
+title: Drools
+description: Drools
 prev: false
 next: /java/drools/01
 ---

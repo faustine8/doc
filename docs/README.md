@@ -22,7 +22,7 @@ features:
 - title: 享受生活
   details: 我们登上并非我们所选择的舞台，演绎并非我们选择的剧本。与诸君共勉！
 
-footer: faustine 2022
+footer: MIT Licensed | Copyright © 2022-present Faustine
 
 ---
 

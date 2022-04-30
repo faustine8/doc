@@ -30,7 +30,7 @@ module.exports = {
                 children: [
                     {
                         text: 'Kafka',
-                        link: '/java/kafka/01/'
+                        link: '/java/kafka/'
                     },
                     {
                         text: 'Redis',
