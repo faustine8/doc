@@ -1,249 +1,214 @@
-# Redis 高可用方案
+---
+lang: zh-CN
+title: Lua 脚本
+description: Lua 脚本
+prev: /java/redis/05/
+next: /java/redis/07/
+---
 
-高可用性(High Availability) 通常来描述一个系统经过专门的设计，从而减少停工时间，而保持其服务的高度可用性。
+# Lua 脚本
 
-> CAP 的 AP模型
+Lua 是一种轻量小巧的脚本语言，用标准 C 语言编写并以源代码形式开放，其设计目的是为了嵌入应用程序中，从而为应用程序提供灵活的扩展和定制功能。
 
-单机的 Redis 是无法保证高可用性的，当 Redis 服务器宕机后，即使在有持久化的机制下也无法保证不丢失数据。
+Lua应用场景: 游戏开发、独立应用脚本、Web应用脚本、扩展和数据库插件。
 
-所以我们采用 Redis 多机和集群的方式来保证 Redis 的高可用性。
+> nginx 上使用 Lua 实现高并发
 
-> 单进程 + 单线程 + 多机 (集群)
+OpenRestry: 一个可伸缩的基于 Nginx 的 Web 平台，是在 nginx 之上集成了 Lua 模块的第三方服务器
 
-## 1. 主从复制
+OpenRestry 是一个通过 Lua 扩展 Nginx 实现的可伸缩的 Web 平台，内部集成了大量精良的 Lua 库、第三方模块以及大多数的依赖项。
+用于方便地搭建能够处理超高并发(日活千万级别)、扩展性极高的动态 Web 应用、Web 服务和动态网关。
 
-Redis 支持主从复制功能，可以通过执行 `slaveof`(Redis 5 以后改成 `replicaof`)或者在配置文件中设置
+功能和 nginx 类似，就是由于支持 Lua 动态脚本，所以更加灵活。
 
-`slaveof`来开启复制功能。
+OpenRestry 通过 Lua 脚本扩展 nginx 功能，可提供负载均衡、请求路由、安全认证、服务鉴权、流量控制与日志监控等服务。
 
-![Redis图解-主从复制-一主一从.png](./assets/README-1650894767246.png)
+类似的还有 Kong(Api Gateway)、Tengine(阿里)
 
-一主一从
+## 1. 创建并修改 Lua 环境
 
-![Redis图解-主从复制-一主多从.png](./assets/README-1650895013117.png)
+> Redis 中自带了，可以不用安装。
 
-一主多从
+下载地址: <http://www.lua.org/download.html>
 
-![Redis图解-主从复制-传递复制.png](./assets/README-1650895237744.png)
-
-传递复制
-
-- 主对外从对内，主可写从不可写
-- 主挂了，从不可为主
-
-### 1.1 主从配置
-
-主Redis配置
-
-无需特殊配置
-
-从Redis配置
-
-修改从服务器上的 `redis.conf` 文件:
+可以本地下载上传到 Linux，也可以使用 curl 命令在 Linux 系统中进行在线下载
 
 ```shell
-# slaveof <masterip> <masterport>
-# 表示当前【从服务器】对应的【主服务器】的IP是192.168.10.135，端口是6379。
-replicaof 127.0.0.1 6379
+curl -R -O http://www.lua.org/ftp/lua-5.3.5.tar.gz
 ```
 
-### 1.2 作用
-
-读写分离
-
-- 一主多从，主从同步
-- 主负责写，从负责读
-- 提升 Redis 的性能和吞吐量
-- 主从的数据一致性问题
-
-数据容灾
-
-- 从机是主机的备份
-- 主机宕机，从机可读不可写
-- 默认情况下主机宕机后，从机不可为主机
-- 利用哨兵可以实现主从切换，做到高可用
-
-### 1.3 原理与实现
-
-#### 1.3.1 复制流程
-
-##### 保存主节点信息
-
-当客户端向从服务器发送 `slaveof`(`replicaof`) 主机地址(`127.0.0.1`) 端口(`6379`)时: 从服务器将主机 IP (127.0.0.1)和端口(6379)保存到 `redisServer` 的 `masterhost` 和 `masterport` 中。
-
-```c
-Struct redisServer{
-    char *masterhost;//主服务器ip
-    int masterport;//主服务器端口
-};
-```
-
-从服务器将向发送 `SLAVEOF` 命令的客户端返回 OK，表示复制指令已经被接收，而实际上复制工作是在 OK 返回之后进行。
-
-##### 建立 socket 连接
-
-Slaver 与 Master 建立 Socket 连接。
-
-Slaver 关联文件事件处理器
-
-该处理器接收 RDB 文件(全量复制)、接收 Master 传播来的写命令(增量复制)
-
-![Redis图解-主从复制-Socket连接1.png](./assets/README-1650937303438.png)
-
-主服务器 `accept` 从服务器 Socket 连接后，创建相应的客户端状态。相当于从服务器是主服务器的 Client 端。
-
-![Redis图解-主从复制-Socket连接2.png](./assets/README-1650937456212.png)
-
-##### 发送 ping 命令
-
-Slaver 向 Master 发送 ping 命令
-
-1. 检测 Socket 的读写状态 
-2. 检测 Master 能否正常处理
-
-Master的响应
-
-1. 发送 "pong", 说明正常
-2. 返回错误，说明 Master 不正常
-3. timeout，说明网络超时
-
-![Redis图解-ping命令流程.png](./assets/README-1650937868069.png)
-
-##### 权限验证
-
-主从正常连接后，进行权限验证。
-
-- 主未设置密码(`requirepass=""`) ，从也不用设置密码(`masterauth=""`)
-- 主设置密码(`requirepass != ""`)，从需要设置密码(`masterauth=主的requirepass的值`)；或者从通过 `auth` 命令向主发送密码
-
-![Redis图解-权限验证流程.png](./assets/README-1650938466169.png)
-
-##### 发送端口信息
-
-在身份验证步骤之后，从服务器将执行命令 `REPLCONF listening-port`，向主服务器发送从服务器的监听端口号。
-
-![Redis图解-发送端口信息.png](./assets/README-1650938707683.png)
-
-##### 同步数据
-
-Redis 2.8 之后分为全量同步和增量同步，具体的后面详细讲解。
-
-##### 命令传播
-
-当同步数据完成后，主从服务器就会进入命令传播阶段，主服务器只要将自己执行的写命令发送给从服务器，
-而从服务器只要一直执行并接收主服务器发来的写命令。
-
-### 1.3.2 同步数据集
-
-Redis 2.8 以前使用 `SYNC` 命令同步复制
-
-Redis 2.8 之后采用 `PSYNC` 命令替代 `SYNC`
-
-#### 旧版本
-
-> Redis 2.8 以前
-
-##### 实现方式
-
-Redis 的同步功能分为同步(`sync`)和命令传播(command propagate)。
-
-**同步操作**
-
-1. 通过从服务器发送 SYNC 命令给主服务器
-2. 主服务器生成 RDB 文件并发送给从服务器，同时发送保存所有写命令给从服务器
-3. 从服务器清空之前数据并执行解释 RDB 文件
-4. 保持数据一致(还需要命令传播过程才能保持一致)
-
-![Redis图解-旧数据同步.png](./assets/README-1651023923537.png)
-
-**命令传播操作**
-
-同步操作完成后，主服务器执行写命令，该命令发送给从服务器并执行，使主从保存一致。
-
-**缺陷**
-
-没有全量同步和增量同步的概念，从服务器在同步时，会清空所有数据。
-
-主从服务器断线后重复制，主服务器会重新生成 RDB 文件和重新记录缓冲区的所有命令，并全量同步到从服务器上。
-
-#### 新版
-
-> Redis 2.8 以后
-
-实现方式
-
-在 Redis 2.8 之后使用 `PSYNC` 命令，具备完整重同步和部分重同步模式。
-
-- Redis 的主从同步，分为全量同步和增量同步。
-- 只有从机第一次连接上主机是全量同步。 
-- 断线重连有可能触发全量同步也有可能是增量同步( master 判断 `runid` 是否一致)。
-
-![同步模式](./assets/README-1651024198455.png)
-
-除此之外的情况都是增量同步。
-
-##### 全量同步
-
-Redis 的全量同步过程主要分三个阶段:
-
-- 同步快照阶段: Master 创建并发送快照RDB给 Slave ，Slave 载入并解析快照。 Master 同时将此阶段所产生的新的写命令存储到缓冲区。
-- 同步写缓冲阶段: Master 向 Slave 同步存储在缓冲区的写操作命令。
-- 同步增量阶段: Master 向 Slave 同步写操作命令。
-
-![全量同步流程](./assets/README-1651024241710.png)
-
-##### 增量同步
-
-- Redis 增量同步主要指 Slave 完成初始化后开始正常工作时，Master 发生的写操作同步到 Slave 的过程。
-- 通常情况下， Master 每执行一个写命令就会向 Slave 发送相同的写命令，然后 Slave 接收并执行。
-
-### 1.3.3 心跳检测
-
-在命令传播阶段，从服务器默认会以每秒一次的频率向主服务器发送命令:
+安装
 
 ```shell
-replconf ack <replication_offset>
-# ack : 应答 
-# replication_offset : 从服务器当前的复制偏移量
+yum -y install readline-devel ncurses-devel
+tar -zxvf lua-5.3.5.tar.gz
+#在src目录下
+make linux # 或 make install
 ```
 
-主要作用有三个:
-
-1. 检测主从的连接状态
-
-检测主从服务器的网络连接状态。
-
-通过向主服务器发送 `INFO replication` 命令，可以列出从服务器列表，可以看出从最后一次向主发送命令距离现在过了多少秒。`lag` 的值应该在 0 或 1 之间跳动，
-如果超过 1 则说明主从之间的连接有故障。
-
-2. 辅助实现 min-slaves
-  
-Redis可以通过配置防止主服务器在不安全的情况下执行写命令
+如果报错，说找不到 `readline/readline.h`, 可以通过 yum 命令安装
 
 ```shell
-min-slaves-to-write 3 (min-replicas-to-write 3)
-min-slaves-max-lag 10 (min-replicas-max-lag 10)
+yum -y install readline-devel ncurses-devel
 ```
 
-上面的配置表示: 从服务器的数量少于 3 个，或者三个从服务器的延迟(`lag`)值都大于或等于 10 秒时，主服务器将拒绝执行写命令。
-这里的延迟值就是上面 `INFO replication` 命令的 `lag` 值。
+最后，直接输入 lua 命令即可进入lua的控制台
 
-3. 检测命令丢失
+## 2. Lua 环境协作组件
 
-如果因为网络故障，主服务器传播给从服务器的写命令在半路丢失，那么当从服务器向主服务器发送 `REPLCONF ACK` 命令时，主服务器将会发觉从服务器当前的复制偏移量少于自己的复制偏移量，
-然后主服务器就会根据从服务器提交的复制偏移量，在复制积压缓冲区里面找到从服务器缺少的数据，并将这些数据重新发送给从服务器。(补发) 网络不断。
+从 Redis 2.6.0 版本开始，通过内置的 Lua 编译/解释器，可以使用 EVAL 命令对 Lua 脚本进行求值。
 
-增量同步: 网断了，再次连接时。
+- 脚本的命令是原子的，RedisServer 在执行脚本命令中，不允许插入新的命令 「这点非常重要」
+- 脚本的命令可以复制，RedisServer 在获得脚本后不执行，生成标识返回，Client 根据标识就可以随时执行
 
-## 2. 哨兵模式
+## 3. EVAL/EVALSHA 命令实现
 
+### 3.1 EVAL 命令
 
+通过执行 Redis 的 eval 命令，可以运行一段 Lua 脚本。
 
+```shell
+eval script numkeys key [key ...] arg [arg ...]
+```
 
+命令说明:
 
-## 3. 集群与分区
+- `script` 参数: 是一段Lua脚本程序，它会被运行在 Redis 服务器上下文中，这段脚本不必(也不应该)定义为一个 Lua 函数。
+- `numkeys` 参数: 用于指定键名参数的个数。
+- `key [key ...]` 参数: 从 EVAL 的第三个参数开始算起，使用了 `numkeys` 个键(key)，表示在脚本中所用到的那些 Redis 键(key)，这些键名参数可以在 Lua 中通过全局变量 KEYS 数组，用 1 为基址的形式访问(`KEYS[1], KEYS[2]`，以此类推)。
+- `arg [arg ...]` 参数: 可以在 Lua 中通过全局变量 `ARGV` 数组访问，访问的形式和 KEYS 变量类似(`ARGV[1], ARGV[2]`，诸如此类)。
 
+```shell
+eval "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}" 2 key1 key2 first second
+```
 
+#### Lua 脚本中调用 Redis 命令
 
+- `redis.call()`
 
+返回值就是 Redis 命令执行的返回值
 
+如果出错，则*返回错误信息，不继续执行*
+
+- `redis.pcall()`
+
+返回值就是 Redis 命令执行的返回值
+
+如果出错，则*记录错误信息，继续执行*
+
+> `redis.call()` 更加常用。
+
+> 注意事项: 在脚本中，使用 `return` 语句将返回值返回给客户端，如果没有 `return`，则返回 `nil`
+
+```shell
+eval "return redis.call('set',KEYS[1],ARGV[1])" 1 n1 jack
+```
+
+### 3.2 EVALSHA 命令
+
+EVAL 命令要求你在每次执行脚本的时候都发送一次脚本主体(script body)。
+
+Redis 有一个内部的缓存机制，因此它不会每次都重新编译脚本，不过在很多场合，付出无谓的带宽来传送脚本主体并不是最佳选择。
+
+为了减少带宽的消耗， Redis 实现了 `evalsha` 命令，它的作用和 `eval` 一样，都用于对脚本求值，但它接受的第一个参数不是脚本，而是脚本的 SHA1 校验和(sum)
+
+## 4. SCRIPT 命令
+
+- `SCRIPT FLUSH`: 清除所有脚本缓存
+- `SCRIPT EXISTS`: 根据给定的脚本校验和，检查指定的脚本是否存在于脚本缓存
+- `SCRIPT LOAD`: 将一个脚本装入脚本缓存，返回 SHA1 摘要，但并不立即运行它
+- `SCRIPT KILL`: 杀死当前正在运行的脚本
+
+```shell
+script load "return redis.call('set',KEYS[1],ARGV[1])"
+
+evalsha c686f316aaf1eb01d5a4de1b0b63cd233010e63d 1 n2 john
+
+get n2
+```
+
+## 5. 脚本管理命令实现
+
+使用 Redis-cli 直接执行 Lua 脚本。
+
+test.lua
+
+```lua
+return redis.call('set',KEYS[1],ARGV[1])
+```
+
+```shell
+./redis-cli -h 127.0.0.1 -p 6379 --eval test.lua name:6 , john #，两边有空格
+```
+
+> 如果两边没有空格，会报 `Lua redis() command arguments must be strings or integers` 错误
+
+list.lua
+
+```lua
+local key=KEYS[1]
+
+local list=redis.call("lrange",key,0,-1);
+
+return list;
+```
+
+```shell
+./redis-cli --eval list.lua list:1
+```
+
+利用 Redis 整合Lua，主要是为了性能以及事务的原子性。因为 Redis 提供的事务功能太差。
+
+## 6 脚本复制
+
+Redis 传播 Lua 脚本，在使用主从模式和开启 AOF 持久化的前提下:
+
+当执行 Lua 脚本时，Redis 服务器有两种模式: 脚本传播模式和命令传播模式。
+
+### 6.1 脚本传播模式
+
+脚本传播模式是 Redis 复制脚本时默认使用的模式。
+
+Redis 会将被执行的脚本及其参数复制到 AOF 文件以及从服务器里。
+
+执行以下命令:
+
+```shell
+eval "redis.call('set',KEYS[1],ARGV[1]);redis.call('set',KEYS[2],ARGV[2])" 2 n1 n2 john1 john2
+```
+
+那么主服务器将会向从服务器发送完全相同的 `eval` 命令:
+
+```shell
+eval "redis.call('set',KEYS[1],ARGV[1]);redis.call('set',KEYS[2],ARGV[2])" 2 n1 n2 john1 john2
+```
+
+注意: 在这一模式下执行的脚本不能有时间、内部状态、随机函数(`spop`)等。执行相同的脚本以及参数必须产生相同的效果。在 Redis5 中，也是处于同一个事务中。
+
+### 6.2 命令传播模式
+
+处于命令传播模式的主服务器会将执行脚本产生的所有写命令用事务包裹起来，然后将事务复制到 AOF 文件以及从服务器里面。
+
+因为命令传播模式复制的是写命令而不是脚本本身，所以即使脚本本身包含时间、内部状态、随机函数等，主服务器给所有从服务器复制的写命令仍然是相同的。
+
+为了开启命令传播模式，用户在使用脚本执行任何写操作之前，需要先在脚本里面调用以下函数:
+
+```shell
+redis.replicate_commands()
+```
+
+> `redis.replicate_commands()` 只对调用该函数的脚本有效: 在使用命令传播模式执行完当前脚本之后，服务器将自动切换回默认的脚本传播模式。
+
+```shell
+eval "redis.replicate_commands();redis.call('set',KEYS[1],ARGV[1]);redis.call('set',KEYS[2],ARGV[2])" 2 n1 n2 john1 john2
+```
+
+## 7. 管道(pipeline),事务和脚本(lua)三者的区别
+
+三者都可以批量执行命令
+
+管道无原子性，命令都是独立的，属于无状态的操作
+
+事务和脚本是有原子性的，其区别在于脚本可借助Lua语言，可利用服务器端存储的便利性定制和简化操作
+
+脚本的原子性要强于事务，脚本执行期间，另外的客户端其它任何脚本或者命令都无法执行，脚本的执行时间应该尽量短，不能太耗时的脚本

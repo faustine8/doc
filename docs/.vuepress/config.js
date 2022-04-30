@@ -34,7 +34,7 @@ module.exports = {
                     },
                     {
                         text: 'Redis',
-                        link: '/java/redis/02/'
+                        link: '/java/redis/'
                     },
                     {
                         text: 'SkyWalking',

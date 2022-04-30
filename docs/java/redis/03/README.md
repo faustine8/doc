@@ -1,775 +1,414 @@
-# Redis 扩展功能
+---
+lang: zh-CN
+title: Redis 数据类型选择和应用场景
+description: Redis 数据类型选择和应用场景
+prev: /java/redis/02/
+next: /java/redis/04/
+---
 
-- 掌握 Redis 发布与订阅命令
-- 理解 Redis 发布与订阅机制
-- 知道 Redis 发布与订阅的使用场景
-- 掌握 Redis 事务的命令
-- 理解 Redis 事务的机制
-- 理解 Redis 事务的弱事务性
-- 理解 Lua 的概念
-- 掌握 Redis 和 Lua 的整合使用
-- 了解慢查询日志的概念
-- 掌握慢查询的定位和处理
-- 了解监视器的概念
-- 掌握监视器的使用
+# Redis 数据类型选择和应用场景
 
-## 1. 发布与订阅
+Redis 是一个 Key-Value 的存储系统，使用 ANSI C 语言编写。
 
-Redis 提供了发布订阅功能，可以用于消息的传输。
+key的类型是字符串。
 
-Redis 的发布订阅机制包括三个部分，publisher，subscriber 和 Channel。
+value的数据类型有:
 
-![Redis图解-发布订阅模型示意图.png](./assets/README-1650076376923.png)
+- 常用的: string 字符串类型、list 列表类型、set 集合类型、sortedset(zset)有序集合类型、hash 类型。
+- 不常见的: bitmap 位图类型、geo 地理位置类型。
 
-发布者和订阅者都是 Redis 客户端，Channel 则为 Redis 服务器端。
+Redis 5.0 新增一种: stream 类型
 
-发布者将消息发送到某个的频道，订阅了这个频道的订阅者就能接收到这条消息。
+注意: Redis 中命令是忽略大小写的(set SET)，key 是不忽略大小写的(NAME name)。
 
-### 1.1 频道/模式的订阅与退订
+## 1. Redis 的 Key 设计
 
-- `subscribe`: 订阅 
+1. 用 `:` 分割
+2. 把表名转换为 key 前缀, 比如: `user:`
+3. 第二段放置主键值
+4. 第三段放置列名
+
+比如: 用户表 `user`, 转换为 Redis 的 key-value 存储
+
+| userid | username | password | email       |
+|--------|----------|----------|-------------|
+| 9      | john     | 123456   | john@zmn.cn |
+
+- username 的 key: `user:9:username`
+
+`{userid:9,username:john}`
+
+- email 的 key: `user:9:email`
+
+Key 设计的优势：
+
+- 表示明确(看key知道意思)
+- 不易被覆盖
+
+## 2. String字符串类型
+
+Redis 的 String 能表达3种值的类型: 字符串、整数、浮点数
+
+常见操作命令如下表:
+
+| 命令名称     | 语法                     | 命令描述                                                         |
+|----------|------------------------|--------------------------------------------------------------|
+| `set`    | `set key value`        | 赋值                                                           |
+| `get`    | `get key`              | 取值                                                           |
+| `setnx`  | `setnx key value`      | 当key不存在时才用赋值。<br/>`set key value NX PX 3000` 原子操作，px 设置生存毫秒数 |
+| `getset` | `getset key value`     | 取值并赋值                                                        |
+| `append` | `append key value`     | 向尾部追加值                                                       |
+| `strlen` | `strlen key`           | 获取字符串长度                                                      |
+| `incr`   | `incr key`             | 递增数字                                                         |
+| `incrby` | `incrby key increment` | 增加指定的整数                                                      |
+| `decr`   | `decr key`             | 递减数字                                                         |
+| `decrby` | `decrby key decrement` | 减少指定的整数                                                      |
+
+应用场景:
+
+1. `key` 和命令是字符串
+2. 普通的赋值
+3. `incr` 用于乐观锁
+
+> incr: 递增数字，可用于实现乐观锁 + watch(事务)
+
+4. `setnx` 用于分布式锁
+
+> 当 value 不存在时采用赋值，可用于实现分布式锁
 
 ```shell
-subscribe channel1 channel2 ...
-```
-
-```shell
-# Redis 客户端 1 订阅频道 1 和频道 2
-subscribe ch1  ch2
-```
-
-- `publish`: 发布消息 
-
-```shell
-publish channel message
-```
-
-```shell
-# Redis 客户端 2 将消息发布在频道 1 和频道 2 上
-publish ch1 hello
-publish ch2 world
-```
-
-- `unsubscribe`: 退订 channel
-
-```shell
-# Redis 客户端 1 退订频道 1
-unsubscribe ch1
-```
-
-- `psubscribe`: 模式匹配 
-
-```shell
-psubscribe 模式
-```
-
-```shell
-# Redis客户端 1 订阅所有以 ch 开头的频道
-psubscribe ch*
-```
-
-- `punsubscribe` 退订模式
-
-```shell
-punsubscribe ch*
-```
-
-### 1.2 发布订阅的机制
-
-订阅某个频道或模式:
-
-- 客户端(client): 
-
-属性为 `pubsub_channels`，该属性表示该客户端订阅的所有*频道*
-
-属性为 `pubsub_patterns`，该属性表示该客户端订阅的所有*模式*
-
-- 服务器端(RedisServer): 
-
-属性为 `pubsub_channels`，该服务器端中的所有频道以及订阅了这些频道的客户端
-
-属性为 `pubsub_patterns`，该服务器端中的所有模式以及订阅了这些模式的客户端
-
-```c
-typedef struct redisClient {
-    ...
-    dict *pubsub_channels; // 该 client 订阅的 channels，以 channel 为 key 用 dict 的方式组织 
-    list *pubsub_patterns; // 该 client 订阅的 pattern，以 list 的方式组织
-    ...
-} redisClient;
-
-struct redisServer {
-    ...
-    dict *pubsub_channels; // redis server 进程中维护的 channel dict，它以 channel 为 key，订阅 channel 的 client list 为 value
-    list *pubsub_patterns; // redis server 进程中维护的 pattern list
-    int notify_keyspace_events;
-    ...
-};
-```
-
-当客户端向某个频道发送消息时，Redis 首先在 `redisServer` 中的 `pubsub_channels` 中找出键(key)为该频道的节点，遍历该节点的值，
-即遍历订阅了该频道的所有客户端，将消息发送给这些客户端。
-
-然后，遍历结构体 `redisServer` 中的 `pubsub_patterns`，找出包含该频道的模式的节点，将消息发送给订阅了该模式的客户端。
-
-### 1.3 使用场景
-
-哨兵模式，Redisson 框架使用 
-
-在 Redis 哨兵模式中，哨兵通过发布与订阅的方式与 Redis 主服务器和 Redis 从服务器进行通信。这个我们将在后面的章节中详细讲解。
-
-Redisson 是一个分布式锁框架，在 Redisson 分布式锁释放的时候，是使用发布与订阅的方式通知的，这个我们将在后面的章节中详细讲解。
-
-## 2. 事务
-
-所谓事务(Transaction) ，是指作为单个逻辑工作单元执行的一系列操作
-
-### 2.1 ACID 回顾
-
-- Atomicity(原子性)
-
-构成事务的的所有操作必须是一个逻辑单元，要么全部执行，要么全部不执行。
-
-Redis 一个队列中的命令，执行或不执行 
-
-- Consistency(一致性)
-
-数据库在事务执行前后状态都必须是稳定的或者是一致的。 
-
-Redis 集群中不能保证实时的一致性，只能是最终一致性 
-
-- Isolation(隔离性)
-
-事务之间不会相互影响。
-
-Redis 命令是顺序执行的。在一个事务中，是有可能被插入执行其他客户端的命令的。
-
-- Durability(持久性)
-
-事务执行成功后必须全部写入磁盘。 
-
-Redis 有持久化但不保证数据的完整性
-
-> 可见 Redis 的事务支持是比较弱的。
-
-### 2.2 Redis事务
-
-- Redis 的事务是通过 `multi`、`exec`、`discard` 和 `watch` 这四个命令来完成的。 
-- Redis 的单个命令都是原子性的，所以这里需要确保事务性的对象是命令集合。
-- Redis 将命令集合序列化并确保处于同一事务的命令集合连续且不被打断的执行。
-- Redis 不支持回滚操作。
-
-### 2.3 事务命令
-
-- `multi`: 用于标记事务块的开始, Redis 会将后续的命令逐个放入队列中，然后使用 `exec` 原子化地执行这个命令队列
-- `exec`: 执行命令队列
-- `discard`: 清除命令队列
-- `watch`: 监视key
-- `unwatch`: 清除监视key
-
-**watch 命令使用详解**
-
-`watch key1` 在 `multi` 之前执行，然后开始往队列中放入命令，当使用 `exec` 开始执行队列中的命令时，如果发现 watch 的 key 发生了改变
-(通常是其他线程改了 `key1` 所对应的数据)，则队列直接被清空。`exec` 命令会返回 `(nil)`。
-
-### 2.4 事务机制 
-
-#### 2.4.1 事务的执行
-
-1. 事务开始
-
-在 RedisClient 中，有属性 `flags`，用来表示是否在事务中 
-
-`flags=REDIS_MULTI`
-
-2. 命令入队 
-
-RedisClient 将命令存放在事务队列中(EXEC, DISCARD, WATCH, MULTI 除外)
-
-3. 事务队列
-
-`multiCmd *commands` 用于存放命令
-
-4. 执行事务 
-
-RedisClient 向服务器端发送 `exec` 命令，RedisServer 会遍历事务队列, 执行队列中的命令, 最后将执行的结果一次性返回给客户端。
-
-如果某条命令在入队过程中发生错误，RedisClient 将 `flags` 置为 `REDIS_DIRTY_EXEC`，`exec` 命令将会失败返回。
-
-```c
-typedef struct redisClient{
-    // flags
-    int flags //状态
-    // 事务状态 
-    multiState mstate; 
-    // .....
-} redisClient;
-
-// 事务状态
-typedef struct multiState{
-    // 事务队列,FIFO顺序
-    // 是一个数组,先入队的命令在前,后入队在后 
-    multiCmd *commands;
-    // 已入队命令数
-    int count;
-} multiState;
-
-// 事务队列
-typedef struct multiCmd{
-    // 参数
-    robj **argv;
-    // 参数数量
-    int argc;
-    // 命令指针
-    struct redisCommand *cmd;
-} multiCmd;
-```
-
-#### 2.4.2 Watch的执行
-
-使用 `WATCH` 命令监视数据库键
-
-`redisDb` 有一个 `watched_keys` 字典, key 是某个被监视的数据的 key, 值是一个链表. 记录了所有监视这个数据的客户端。
-
-监视机制的触发
-
-当修改数据后，监视这个数据的客户端的 `flags` 置为 `REDIS_DIRTY_CAS`
-
-事务执行
-
-RedisClient 向服务器端发送 `exec` 命令，服务器判断 RedisClient 的 `flags`，如果为 `REDIS_DIRTY_CAS`，则清空事务队列。
-
-#### 2.4.3 Redis的弱事务性 
-
-- Redis 语法错误
-
-整个事务的命令在队列里都清除
-
-```shell
-127.0.0.1:6379> multi
-OK
-127.0.0.1:6379> sets m1 44
-(error) ERR unknown command `sets`, with args beginning with: `m1`, `44`,
-127.0.0.1:6379> set m2 55
-QUEUED
-127.0.0.1:6379> exec
-(error) EXECABORT Transaction discarded because of previous errors.
-127.0.0.1:6379> get m1
-"22"
-```
-
-`flags=REDIS_DIRTY_EXEC`
-
-- Redis运行错误
-
-在队列里正确的命令可以执行(弱事务性) 
-
-弱事务性:
-
-1. 在队列里正确的命令可以执行(非原子操作) 
-2. 不支持回滚
-
-```shell
-127.0.0.1:6379> multi
-OK
-127.0.0.1:6379> set m1 55
-QUEUED
-127.0.0.1:6379> lpush m1 1 2 3 # 不能是语法错误
-QUEUED
-127.0.0.1:6379> exec
-1) OK
-2) (error) WRONGTYPE Operation against a key holding the wrong kind of value
-127.0.0.1:6379> get m1
-"55"
-```
-
-- Redis不支持事务回滚(为什么呢?) 
-
-1. 大多数事务失败是因为语法错误或者类型错误，这两种错误，在开发阶段都是可以预见的
-2. Redis 为了性能方面就忽略了事务回滚。(回滚记录历史版本)
-
-## 3. Lua 脚本
-
-Lua 是一种轻量小巧的脚本语言，用标准 C 语言编写并以源代码形式开放，其设计目的是为了嵌入应用程序中，从而为应用程序提供灵活的扩展和定制功能。
-
-Lua应用场景: 游戏开发、独立应用脚本、Web应用脚本、扩展和数据库插件。
-
-> nginx 上使用 Lua 实现高并发
-
-OpenRestry: 一个可伸缩的基于 Nginx 的 Web 平台，是在 nginx 之上集成了 Lua 模块的第三方服务器
-
-OpenRestry 是一个通过 Lua 扩展 Nginx 实现的可伸缩的 Web 平台，内部集成了大量精良的 Lua 库、第三方模块以及大多数的依赖项。
-用于方便地搭建能够处理超高并发(日活千万级别)、扩展性极高的动态 Web 应用、Web 服务和动态网关。
-
-功能和 nginx 类似，就是由于支持 Lua 动态脚本，所以更加灵活。 
-
-OpenRestry 通过 Lua 脚本扩展 nginx 功能，可提供负载均衡、请求路由、安全认证、服务鉴权、流量控制与日志监控等服务。
-
-类似的还有 Kong(Api Gateway)、Tengine(阿里)
-
-### 3.1 创建并修改 Lua 环境
-
-下载地址: <http://www.lua.org/download.html>
-
-可以本地下载上传到 Linux，也可以使用 curl 命令在 Linux 系统中进行在线下载
-
-```shell
-curl -R -O http://www.lua.org/ftp/lua-5.3.5.tar.gz
-```
-
-安装
-
-```shell
-yum -y install readline-devel ncurses-devel
-tar -zxvf lua-5.3.5.tar.gz
-#在src目录下
-make linux # 或 make install
-```
-
-如果报错，说找不到 `readline/readline.h`, 可以通过 yum 命令安装
-
-```shell
-yum -y install readline-devel ncurses-devel
-```
-
-最后，直接输入 lua 命令即可进入lua的控制台
-
-### 3.2 Lua环境协作组件
-
-从 Redis 2.6.0 版本开始，通过内置的 Lua 编译/解释器，可以使用 EVAL 命令对 Lua 脚本进行求值。
-
-- 脚本的命令是原子的，RedisServer 在执行脚本命令中，不允许插入新的命令 「这点非常重要」
-- 脚本的命令可以复制，RedisServer 在获得脚本后不执行，生成标识返回，Client 根据标识就可以随时执行
-
-### 3.3 EVAL/EVALSHA 命令实现
-
-#### 3.3.1 EVAL 命令
-
-通过执行 Redis 的 eval 命令，可以运行一段 Lua 脚本。
-
-```shell
-eval script numkeys key [key ...] arg [arg ...]
-```
-
-命令说明: 
-
-- `script` 参数: 是一段Lua脚本程序，它会被运行在 Redis 服务器上下文中，这段脚本不必(也不应该)定义为一个 Lua 函数。 
-- `numkeys` 参数: 用于指定键名参数的个数。
-- `key [key ...]` 参数: 从 EVAL 的第三个参数开始算起，使用了 `numkeys` 个键(key)，表示在脚本中所用到的那些 Redis 键(key)，这些键名参数可以在 Lua 中通过全局变量 KEYS 数组，用 1 为基址的形式访问(`KEYS[1], KEYS[2]`，以此类推)。
-- `arg [arg ...]` 参数: 可以在 Lua 中通过全局变量 `ARGV` 数组访问，访问的形式和 KEYS 变量类似(`ARGV[1], ARGV[2]`，诸如此类)。
-
-```shell
-eval "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}" 2 key1 key2 first second
-```
-
-##### Lua 脚本中调用 Redis 命令
-
-- `redis.call()`
-
-返回值就是 Redis 命令执行的返回值
-
-如果出错，则*返回错误信息，不继续执行*
-
-- `redis.pcall()`
-
-返回值就是 Redis 命令执行的返回值
-
-如果出错，则*记录错误信息，继续执行*
-
-> `redis.call()` 更加常用。
-
-> 注意事项: 在脚本中，使用 `return` 语句将返回值返回给客户端，如果没有 `return`，则返回 `nil`
-
-```shell
-eval "return redis.call('set',KEYS[1],ARGV[1])" 1 n1 jack
-```
-
-#### 3.3.2 EVALSHA 命令
-
-EVAL 命令要求你在每次执行脚本的时候都发送一次脚本主体(script body)。
-
-Redis 有一个内部的缓存机制，因此它不会每次都重新编译脚本，不过在很多场合，付出无谓的带宽来传送脚本主体并不是最佳选择。
-
-为了减少带宽的消耗， Redis 实现了 `evalsha` 命令，它的作用和 `eval` 一样，都用于对脚本求值，但它接受的第一个参数不是脚本，而是脚本的 SHA1 校验和(sum)
-
-### 3.4 SCRIPT 命令
-
-- `SCRIPT FLUSH`: 清除所有脚本缓存
-- `SCRIPT EXISTS`: 根据给定的脚本校验和，检查指定的脚本是否存在于脚本缓存
-- `SCRIPT LOAD`: 将一个脚本装入脚本缓存，返回 SHA1 摘要，但并不立即运行它
-- `SCRIPT KILL`: 杀死当前正在运行的脚本
-
-```shell
-script load "return redis.call('set',KEYS[1],ARGV[1])"
-
-evalsha c686f316aaf1eb01d5a4de1b0b63cd233010e63d 1 n2 john
-
-get n2
-```
-
-### 3.5 脚本管理命令实现
-
-使用 Redis-cli 直接执行 Lua 脚本。 
-
-test.lua
-
-```lua
-return redis.call('set',KEYS[1],ARGV[1])
-```
-
-```shell
-./redis-cli -h 127.0.0.1 -p 6379 --eval test.lua name:6 , john #，两边有空格
-```
-
-> 如果两边没有空格，会报 `Lua redis() command arguments must be strings or integers` 错误
-
-list.lua
-
-```lua
-local key=KEYS[1]
-
-local list=redis.call("lrange",key,0,-1);
-
-return list;
-```
-
-```shell
-./redis-cli --eval list.lua list:1
-```
-
-利用 Redis 整合Lua，主要是为了性能以及事务的原子性。因为 Redis 提供的事务功能太差。
-
-### 3.6 脚本复制
-
-Redis 传播 Lua 脚本，在使用主从模式和开启 AOF 持久化的前提下: 
-
-当执行 Lua 脚本时，Redis 服务器有两种模式: 脚本传播模式和命令传播模式。 
-
-#### 3.6.1 脚本传播模式
-
-脚本传播模式是 Redis 复制脚本时默认使用的模式。
-
-Redis 会将被执行的脚本及其参数复制到 AOF 文件以及从服务器里。
-
-执行以下命令:
-
-```shell
-eval "redis.call('set',KEYS[1],ARGV[1]);redis.call('set',KEYS[2],ARGV[2])" 2 n1 n2 john1 john2
-```
-
-那么主服务器将会向从服务器发送完全相同的 `eval` 命令:
-
-```shell
-eval "redis.call('set',KEYS[1],ARGV[1]);redis.call('set',KEYS[2],ARGV[2])" 2 n1 n2 john1 john2
-```
-
-注意: 在这一模式下执行的脚本不能有时间、内部状态、随机函数(`spop`)等。执行相同的脚本以及参数必须产生相同的效果。在 Redis5 中，也是处于同一个事务中。
-
-#### 3.6.2 命令传播模式
-
-处于命令传播模式的主服务器会将执行脚本产生的所有写命令用事务包裹起来，然后将事务复制到 AOF 文件以及从服务器里面。
-
-因为命令传播模式复制的是写命令而不是脚本本身，所以即使脚本本身包含时间、内部状态、随机函数等，主服务器给所有从服务器复制的写命令仍然是相同的。
-
-为了开启命令传播模式，用户在使用脚本执行任何写操作之前，需要先在脚本里面调用以下函数:
-
-```shell
-redis.replicate_commands()
-```
-
-> `redis.replicate_commands()` 只对调用该函数的脚本有效: 在使用命令传播模式执行完当前脚本之后，服务器将自动切换回默认的脚本传播模式。
-
-```shell
-eval "redis.replicate_commands();redis.call('set',KEYS[1],ARGV[1]);redis.call('set',KEYS[2],ARGV[2])" 2 n1 n2 john1 john2
-```
-
-### 3.7 管道(pipeline),事务和脚本(lua)三者的区别
-
-三者都可以批量执行命令
-
-管道无原子性，命令都是独立的，属于无状态的操作
-
-事务和脚本是有原子性的，其区别在于脚本可借助Lua语言，可利用服务器端存储的便利性定制和简化操作
-
-脚本的原子性要强于事务，脚本执行期间，另外的客户端其它任何脚本或者命令都无法执行，脚本的执行时间应该尽量短，不能太耗时的脚本
-
-## 4. 慢查询日志
-
-我们都知道 MySQL 有慢查询日志，Redis 也有慢查询日志，可用于监视和优化查询
-
-### 4.1 慢查询设置
-
-在 `redis.conf` 中可以配置和慢查询日志相关的选项:
-
-```shell
-# 执行时间超过多少微秒的命令请求会被记录到日志上 0 :全记录 <0 不记录 
-slowlog-log-slower-than 10000
-# slowlog-max-len 存储慢查询日志条数
-slowlog-max-len 128
-```
-
-Redis 使用列表存储慢查询日志，采用队列方式(FIFO)
-
-`config set` 的方式可以临时设置，Redis 重启后就无效
-
-```shell
-config set slowlog-log-slower-than 微秒
-config set slowlog-max-len 条数 
-# 查看日志
-slowlog get [n]
-```
-
-```shell
-127.0.0.1:6379> config set slowlog-log-slower-than 0
-OK
-127.0.0.1:6379> config set slowlog-max-len 2
-OK
-127.0.0.1:6379> set name:001 john
-OK
-127.0.0.1:6379> set name:002 jack
-OK
-127.0.0.1:6379> get name:002
-"jack"
-127.0.0.1:6379> slowlog get
-1) 1) (integer) 4             # 日志的唯一标识符(uid)
-   2) (integer) 1649814537    # 命令执行时的UNIX时间戳
-   3) (integer) 4             # 命令执行的时长(微秒)
-   4) 1) "get"                # 执行命令及参数
-      2) "name:002"
-   5) "127.0.0.1:46752"
-   6) ""
-2) 1) (integer) 3
-   2) (integer) 1649814528
-   3) (integer) 8
-   4) 1) "set"
-      2) "name:002"
-      3) "jack"
-   5) "127.0.0.1:46752"
-   6) ""
-```
-
-### 4.2 慢查询记录的保存
-
-在 `redisServer` 中保存和慢查询日志相关的信息
-
-```c
-struct redisServer {
-    // ...
-    
-    // 下一条慢查询日志的 ID
-    long long slowlog_entry_id;
-    
-    // 保存了所有慢查询日志的链表 FIFO 
-    list *slowlog;
-    
-    // 服务器配置 slowlog-log-slower-than 选项的值 
-    long long slowlog_log_slower_than;
-    
-    // 服务器配置 slowlog-max-len 选项的值 
-    unsigned long slowlog_max_len;
-    
-    // ...
-```
-
-`slowlog` 链表保存了服务器中的所有慢查询日志，链表中的每个节点都保存了一个 `slowlogEntry` 结构， 每个 `slowlogEntry` 结构代表一条慢查询日志。
-
-```c
-typedef struct slowlogEntry {
-    // 唯一标识符
-    long long id;
-    
-    // 命令执行时的时间，格式为 UNIX 时间戳
-    time_t time;
-    
-    // 执行命令消耗的时间，以微秒为单位
-    long long duration; 
-    
-    // 命令与命令参数
-    robj **argv;
-    
-    // 命令与命令参数的数量
-    int argc;
-} slowlogEntry;
-```
-
-### 4.3 慢查询日志的阅览&删除
-
-初始化日志列表
-
-```c
-void slowlogInit(void) {
-    server.slowlog = listCreate(); /* 创建一个list列表 */ 
-    server.slowlog_entry_id = 0; /* 日志ID从0开始 */ 
-    listSetFreeMethod(server.slowlog,slowlogFreeEntry); /* 指定慢查询日志list空间的释放方法 */ 
-}
-```
-
-获得慢查询日志记录
-
-```shell
-slowlog get [n]
-```
-
-```c
-def SLOWLOG_GET(number=None):
-    # 用户没有给定 number 参数
-    # 那么打印服务器包含的全部慢查询日志 
-    if number is None:
-      number = SLOWLOG_LEN() 
-      
-    # 遍历服务器中的慢查询日志
-    for log in redisServer.slowlog:
-      if number <= 0:
-        # 打印的日志数量已经足够，跳出循环
-        break 
-      else:
-        # 继续打印，将计数器的值减一 
-        number -= 1
-        # 打印日志 
-      printLog(log)
-```
-
-查看日志数量的 `slowlog len`
-
-```c
-def SLOWLOG_LEN():
-    # slowlog 链表的长度就是慢查询日志的条目数量 
-    return len(redisServer.slowlog)
-```
-
-清除日志 `slowlog reset`
-
-```c
-def SLOWLOG_RESET():
-
-    # 遍历服务器中的所有慢查询日志
-    for log in redisServer.slowlog:
-    
-        # 删除日志 
-        deleteLog(log)
-```
-
-### 4.4 添加日志实现
-
-在每次执行命令的之前和之后，程序都会记录微秒格式的当前 UNIX 时间戳，这两个时间戳之间的差就是服务器执行命令所耗费的时长，
-服务器会将这个时长作为参数之一传给 `slowlogPushEntryIfNeeded` 函数， 而 `slowlogPushEntryIfNeeded` 函数则负责检查是否需要为这次执行的命令创建慢查询日志
-
-```c{2,8,11,15}
-// 记录执行命令前的时间
-before = unixtime_now_in_us()
-
-//执行命令
-execute_command(argv, argc, client)
-
-//记录执行命令后的时间
-after = unixtime_now_in_us()
-
-// 检查是否需要创建新的慢查询日志 
-slowlogPushEntryIfNeeded(argv, argc, before-after)
-
-void slowlogPushEntryIfNeeded(robj **argv, int argc, long long duration) {
-    if (server.slowlog_log_slower_than < 0) return; /* Slowlog disabled */ /* 负数表示禁用 */
-    if (duration >= server.slowlog_log_slower_than) /* 如果执行时间 > 指定阈值*/
-        listAddNodeHead(server.slowlog,slowlogCreateEntry(argv,argc,duration)); /* 创建一个slowlogEntry对象,添加到列表首部*/
-    while (listLength(server.slowlog) > server.slowlog_max_len) /* 如果列表长度 > 指定长度 */
-        listDelNode(server.slowlog,listLast(server.slowlog)); /* 移除列表尾部元素 */
-}
-```
-
-`slowlogPushEntryIfNeeded` 函数的作用有两个:
-
-1. 检查命令的执行时长是否超过 `slowlog-log-slower-than` 选项所设置的时间。如果是的话，就为命令创建一个新的日志，并将新日志添加到 `slowlog` 链表的表头。
-2. 检查慢查询日志的长度是否超过 `slowlog-max-len` 选项所设置的长度。如果是的话，那么将多出来的日志从 `slowlog` 链表中删除掉。
-
-### 4.5 慢查询定位&处理
-
-使用 `slowlog get` 可以获得执行较慢的 Redis 命令，针对该命令可以进行优化:
-
-1. 尽量使用短的 key，对于 value 有些也可精简，能使用 int 就 int。 
-2. 避免使用 `keys *`、`hgetall` 等全量操作。
-3. 减少大 key 的存取，打散为小 key (100K以上)
-4. 将 RDB 改为 AOF 模式
-
-> RDB fork 子进程, 数据量过大, 主进程阻塞, Redis 性能大幅下降
-> 
-> 关闭持久化 (适合于数据量较小，有固定数据源)
-
-5. 想要一次添加多条数据的时候可以使用管道
-6. 尽可能地使用哈希存储
-7. 尽量限制下 Redis 使用的内存大小，这样可以避免 Redis 使用 swap 分区或者出现 OOM 错误
-
-> 内存与硬盘的 swap
-
-## 5. 监视器
-
-Redis 客户端通过执行 `MONITOR` 命令可以将自己变为一个监视器，实时地接受并打印出服务器当前处理的命令请求的相关信息。
-
-此时，当其他客户端向服务器发送一条命令请求时，服务器除了会处理这条命令请求之外，还会将这条命令请求的信息发送给所有监视器。
-
-![Redis监视器示意图.png](./assets/README-1649820288520.png)
-
-Redis客户端1
-
-```shell
-127.0.0.1:6379> monitor
-OK
-1650163716.350486 [0 127.0.0.1:46774] "set" "name:10" "john"
-1650163724.887951 [0 127.0.0.1:46774] "get" "name:10"
-```
-
-Redis客户端2
-
-```shell
-127.0.0.1:6379> set name:10 john
-OK
-127.0.0.1:6379> get name:10
+127.0.0.1:6379> setnx name john #如果name不存在赋值
+(integer) 1
+127.0.0.1:6379> setnx name john #再次赋值失败
+(integer) 0
+127.0.0.1:6379> get name
 "john"
+
+127.0.0.1:6379> set age 18 NX PX 10000  # 如果不存在赋值 有效期10秒
+OK
+127.0.0.1:6379> set age 20 NX           # 赋值失败 (有效期没过)
+(nil)
+127.0.0.1:6379> get age                 # age失效 (有效期过了)
+(nil)
+127.0.0.1:6379> set age 30 NX PX 10000  # 赋值成功 (有效期过了，可以赋值成功)
+OK
+127.0.0.1:6379> get age
+"30"
 ```
 
-### 5.1 实现监视器
+## 3. List 列表类型
 
-`redisServer` 维护一个 `monitors` 的链表，记录自己的监视器，
-每次收到 `MONITOR` 命令之后，将客户端追加到链表尾。
+List列表类型可以存储有序、可重复的元素
 
-```c
-void monitorCommand(redisClient *c) {
-    /* ignore MONITOR if already slave or in monitor mode */
-    if (c->flags & REDIS_SLAVE) return;
-      c->flags |= (REDIS_SLAVE|REDIS_MONITOR); 
-      listAddNodeTail(server.monitors,c); 
-      addReply(c,shared.ok); //回复OK
-}
+获取头部或尾部附近的记录是极快的
+
+> 双端列表
+
+List 的元素个数最多为 2^32-1 个(40亿)
+
+常见操作命令如下表:
+
+| 命令名称         | 命令格式                                   | 描述                                                                                                                                                            |
+|--------------|----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `lpush`      | `lpush key v1 v2 v3 ...`               | 从左侧插入列表                                                                                                                                                       |
+| `lpop`       | `lpop key`                             | 从列表左侧取出                                                                                                                                                       |
+| `rpush`      | `rpush key v1 v2 v3 ...`               | 从右侧插入列表                                                                                                                                                       |
+| `rpop`       | `rpop key`                             | 从列表右侧取出                                                                                                                                                       |
+| `lpushx`     | `lpushx key value`                     | 将值插入到列表头部                                                                                                                                                     |
+| `rpushx`     | `rpushx key value`                     | 将值插入到列表尾部                                                                                                                                                     |
+| `blpop`      | `blpop key timeout`                    | 从列表左侧取出，当列表为空时阻塞，可以设置最大阻塞时间，单位为秒                                                                                                                              |
+| `brpop`      | `brpop key timeout`                    | 从列表右侧取出，当列表为空时阻塞，可以设置最大阻塞时间，单位为秒                                                                                                                              |
+| `llen`       | `llen key`                             | 获得列表中元素个数                                                                                                                                                     |
+| `lindex`     | `lindex key index`                     | 获得列表中下标为 `index` 的元素, `index` 从 0 开始                                                                                                                          |
+| `lrange`     | `lrange key start end`                 | 返回列表中指定区间的元素，区间通过 `start` 和 `end` 指定                                                                                                                          |
+| `lrem`       | `lrem key count value`                 | 删除列表中与 `value` 相等的元素。<br/> 当 `count > 0` 时， `lrem` 会从列表左边开始删除; <br/> 当 `count < 0` 时，`lrem` 会从列表后边开始删除; <br/> 当 `count = 0` 时，`lrem` 删除所有值为 `value` 的元素 <br/> |
+| `lset`       | `lset key index value`                 | 将列表 `index` 位置的元素设置成 `value` 的值                                                                                                                               |
+| `rpoplpush`  | `rpoplpush key1 key2`                  | 从 `key1` 列表右侧弹出并插入到 `key2` 列表左侧                                                                                                                               |
+| `ltrim`      | `ltrim key start end`                  | 对列表进行修剪，只保留 `start` 到 `end` 区间                                                                                                                                |
+| `brpoplpush` | `brpoplpush key1 key2`                 | 从 `key1` 列表右侧弹出并插入到 `key2` 列表左侧，会阻塞                                                                                                                           |
+| `linsert`    | `linsert key BEFORE/AFTER pivot value` | 将 `value` 插入到列表，且位于值 `pivot` 之前或之后                                                                                                                            |
+
+应用场景:
+
+1. 作为栈或队列使用(列表有序可以作为栈和队列使用)
+2. 可用于各种列表，比如用户列表、商品列表、评论列表等。
+
+```shell
+127.0.0.1:6379> lpush list:1 1 2 3 4 5 3
+(integer) 6
+127.0.0.1:6379> lrange list:1 0 -1
+1) "3"
+2) "5"
+3) "4"
+4) "3"
+5) "2"
+6) "1"
+127.0.0.1:6379> lpop list:1
+"3"
+127.0.0.1:6379> rpop list:1
+"1"
+127.0.0.1:6379> lindex list:1 1
+"4"
+127.0.0.1:6379> lrange list:1 0 -1
+1) "5"
+2) "4"
+3) "3"
+4) "2"
+127.0.0.1:6379> rpoplpush list:1 list:2
+"2"
+127.0.0.1:6379> lrange list:1 0 -1
+1) "5"
+2) "4"
+3) "3"
+127.0.0.1:6379> lrange list:2 0 -1
+1) "2"
 ```
 
-### 5.2 向监视器发送命令信息
+## 4. Set 集合类型
 
-利用 call 函数实现向监视器发送命令
+Set: 无序、唯一元素
 
-```c
-// call() 函数是执行命令的核心函数，这里只看监视器部分 
-/*src/redis.c/call*/
-/* Call() is the core of Redis execution of a command */ 
-void call(redisClient *c, int flags) {
-    long long dirty, start = ustime(), duration;
-    int client_old_flags = c->flags;
-    /* Sent the command to clients in MONITOR mode, only if the commands are
-    * not generated from reading an AOF. */
-    if (listLength(server.monitors) &&
-        !server.loading &&
-        !(c->cmd->flags & REDIS_CMD_SKIP_MONITOR))
-        {
-        replicationFeedMonitors(c,server.monitors,c->db->id,c->argv,c->argc);
-    }
-...... 
-}
+集合中最大的成员数为 2^32 - 1
+
+常见操作命令如下表:
+
+| 命令名称          | 命令格式                      | 描述                  |
+|---------------|---------------------------|---------------------|
+| `sadd`        | `sadd key mem1 mem2 ....` | 为集合添加新成员            |
+| `srem`        | `srem key mem1 mem2 ....` | 删除集合中指定成员           |
+| `smembers`    | `smembers key`            | 获得集合中所有元素           |
+| `spop`        | `spop key`                | 返回集合中一个随机元素，并将该元素删除 |
+| `srandmember` | `srandmember key`         | 返回集合中一个随机元素，不会删除该元素 |
+| `scard`       | `scard key`               | 获得集合中元素的数量          |
+| `sismember`   | `sismember key member`    | 判断元素是否在集合内          |
+| `sinter`      | `sinter key1 key2 key3`   | 求多集合的交集             |
+| `sdiff`       | `sdiff key1 key2 key3`    | 求多集合的差集             |
+| `sunion`      | `sunion key1 key2 key3`   | 求多集合的并集             |
+
+应用场景: 适用于不能重复的且不需要顺序的数据结构
+
+比如: 关注的用户，还可以通过 `spop` 进行随机抽奖
+
+## 5. sortedset 有序集合类型
+
+SortedSet(ZSet) 有序集合: 元素本身是无序不重复的
+
+每个元素关联一个分数(score)
+
+可按分数排序，分数可重复
+
+> 与 Set 最大的不同是有针对分数的操作。
+
+常见操作命令如下表:
+
+| 命令名称        | 命令格式                                         | 描述                                 |
+|-------------|----------------------------------------------|------------------------------------|
+| `zadd`      | `zadd key score1 member1 score2 member2 ...` | 为有序集合添加新成员                         |
+| `zrem`      | `zrem key mem1 mem2 ....`                    | 删除有序集合中指定成员                        |
+| `zcard`     | `zcard key`                                  | 获得有序集合中的元素数量                       |
+| `zcount`    | `zcount key min max`                         | 返回集合中 score 值在 `[min,max]` 区间的元素数量 |
+| `zincrby`   | `zincrby key increment member`               | 在集合的 member 分值上加 increment         |
+| `zscore`    | `zscore key member`                          | 获得集合中 member 的分值                   |
+| `zrank`     | `zrank key member`                           | 获得集合中 member 的排名(按分值从小到大)          |
+| `zrevrank`  | `zrevrank key member`                        | 获得集合中 member 的排名(按分值从大到小)          |
+| `zrange`    | `zrange key start end`                       | 获得集合中指定区间成员，按分数递增排序                |
+| `zrevrange` | `zrevrange key start end`                    | 获得集合中指定区间成员，按分数递减排序                |
+
+应用场景:
+
+由于可以按照分值排序，所以适用于各种排行榜。比如: 点击排行榜、销量排行榜、关注排行榜等。
+
+## 6. Hash类型(散列表)
+
+Redis Hash 是一个 String 类型的 field 和 value 的映射表，它提供了字段和字段值的映射。
+
+每个 Hash 可以存储 2^32 - 1 键值对(40多亿)。
+
+![Redis-Hash数据结构.png](./assets/README-1649644220580.png)
+
+常见操作命令如下表:
+
+| 命令名称      | 命令格式                                    | 描述                 |
+|-----------|-----------------------------------------|--------------------|
+| `hset`    | `hset key field value`                  | 赋值，不区别新增或修改        |
+| `hmset`   | `hmset key field1 value1 field2 value2` | 批量赋值               |
+| `hsetnx`  | `hsetnx key field value`                | 赋值，如果filed存在则不操作   |
+| `hexists` | `hexists key filed`                     | 查看某个field是否存在      |
+| `hget`    | `hget key field`                        | 获取一个字段值            |
+| `hmget`   | `hmget key field1 field2 ...`           | 获取多个字段值            |
+| `hgetall` | `hgetall key`                           |                    |
+| `hdel`    | `hdel key field1 field2...`             | 删除指定字段             |
+| `hincrby` | `hincrby key field increment`           | 指定字段自增 `increment` |
+| `hlen`    | `hlen key`                              | 获得字段数量             |
+
+应用场景: 对象的存储，表数据的映射
+
+## 7. bitmap 位图类型
+
+bitmap 是进行位操作的
+
+通过一个 bit 位来表示某个元素对应的值或者状态, 其中的 key 就是对应元素本身。
+
+bitmap 本身会极大的节省储存空间。
+
+常见操作命令如下表:
+
+| 命令名称       | 命令格式                                          | 描述                                     |
+|------------|-----------------------------------------------|----------------------------------------|
+| `setbit`   | `setbit key offset value`                     | 设置 key 在 offset 处的 bit 值 (只能是 0 或者 1)。 |
+| `getbit`   | `getbit key offset`                           | 获得 key 在 offset 处的 bit 值               |
+| `bitcount` | `bitcount key`                                | 获得 key 的 bit 位为 1 的个数                  |
+| `bitpos`   | `bitpos key value`                            | 返回第一个被设置为 bit 值的索引值                    |
+| `bitop`    | `bitop and[or/xor/not] destkey key [key ...]` | 对多个 key 进行逻辑运算后存入 `destkey` 中          |
+
+应用场景:
+
+1. 用户每月签到，用户 id 为 key ，日期作为偏移量 (1 表示签到)
+2. 统计活跃用户, 日期为 key，用户 id 为偏移量 (1 表示活跃)
+3. 查询用户在线状态，日期为 key，用户 id 为偏移量 (1 表示在线)
+
+```shell
+127.0.0.1:6379> setbit user:sign:1000 20200101 1 # id为1000的用户20200101签到 
+(integer) 0
+127.0.0.1:6379> setbit user:sign:1000 20200103 1 # id为1000的用户20200103签到 
+(integer) 0
+127.0.0.1:6379> getbit user:sign:1000 20200101 # 获得id为1000的用户20200101签到状态. 1 表示签到
+(integer) 1
+127.0.0.1:6379> getbit user:sign:1000 20200102 # 获得id为1000的用户20200102签到状态. 0 表示未签到
+(integer) 0
+127.0.0.1:6379> bitcount user:sign:1000 # 获得id为1000的用户签到次数 
+(integer) 2
+127.0.0.1:6379> bitpos user:sign:1000 1 # id为1000的用户第一次签到的日期 
+(integer) 20200101
+127.0.0.1:6379> setbit 20200201 1000 1 # 20200201 id 为 1000 的用户上线 
+(integer) 0
+127.0.0.1:6379> setbit 20200202 1001 1 # 20200202 id 为 1001 的用户上线 
+(integer) 0
+127.0.0.1:6379> setbit 20200201 1002 1 # 20200201 id 为 1002 的用户上线 
+(integer) 0
+127.0.0.1:6379> bitcount 20200201 # 20200201 的上线用户有 2 个
+(integer) 2
+127.0.0.1:6379> bitop or desk1 20200201 20200202 # 合并20200201和20200202上线的用户
+(integer) 126
+127.0.0.1:6379> bitcount desk1 # 统计20200201和20200202上线的用户 
+(integer) 3
 ```
 
-`call` 主要调用了 `replicationFeedMonitors`，这个函数的作用就是将命令打包为协议，发送给监视器。
+## 8. geo 地理位置类型
 
-### 5.3 Redis监控平台
+geo 是 Redis 用来处理位置信息的。
 
-Grafana、Prometheus 以及 redis_exporter。
+在 Redis3.2 中正式使用。主要是利用了 Z阶曲线、Base32 编码和 geohash 算法。
 
-- Grafana 是一个开箱即用的可视化工具，具有功能齐全的度量仪表盘和图形编辑器，有灵活丰富的图形化选项，可以混合多种风格，支持多个数据源特点。
-- Prometheus 是一个开源的服务监控系统，它通过 HTTP 协议从远程的机器收集数据并存储在本地的时序数据库上。
-- redis_exporter 为 Prometheus 提供了 Redis 指标的导出，配合 Prometheus 以及 Grafana 进行可视化及监控。
+### 8.1 Z阶曲线
+
+在 x 轴和 y 轴上将十进制数转化为二进制数，采用 x 轴和 y 轴对应的二进制数依次交叉后得到一个六位数编码。
+把数字从小到大依次连起来的曲线称为Z阶曲线，Z 阶曲线是把多维转换成一维的一种方法。
+
+![Z阶曲线算法](./assets/README-1649649480206.png)
+
+### 8.2 Base32 编码
+
+Base32 这种数据编码机制，主要用来把二进制数据编码成可见的字符串，其编码规则是: 任意给定一个二进制数据，
+以 5 个位 (bit) 为一组进行切分 (base64 以 6 个位(bit)为一组)，对切分而成的每个组进行编码得到 1 个可见字符。
+
+Base32 编码表字符集中的字符总数为 32 个(0-9、b-z去掉a、i、l、o)，这也是 Base32 名字的由来。
+
+![Base32算法](./assets/README-1649649508173.png)
+
+### 8.3 GeoHash 算法
+
+Gustavo 在 2008 年 2 月上线了 <http://geohash.org/> 网站。
+
+GeoHash 是一种地理位置信息编码方法。 经过 GeoGeoHashhash 映射后，地球上任意位置的经纬度坐标可以表示成一个较短的字符串。
+可以方便的存储在数据库中，附在邮件上，以及方便的使用在其他服务中。
+
+以北京的坐标举例，`[39.928167,116.389550]` 可以 转换成 `wx4g0s8q3jf9`。
+
+Redis 中经纬度使用 52 位的整数进行编码，放进 `zset` 中，`zset` 的value元素是key，score 是 GeoHash 的 52 位整数值。
+在使用 Redis 进行 Geo 查询时，其内部对应的操作其实只是 `zset`( `skiplist` )的操作。通过 `zset` 的 score 进行排序就可以得到坐标附近的其它元素，
+通过将 score 还原成坐标值就可以得到元素的原始坐标。
+
+常见操作命令如下表:
+
+| 命令名称                | 命令格式                                                | 描述              |
+|---------------------|-----------------------------------------------------|-----------------|
+| `geoadd`            | `geoadd key 经度 纬度 成员名称1 经度1 纬度1 成员名称2 经度2 纬度 2 ...` | 添加地理坐标          |
+| `geohash`           | `geohash key 成员名称1 成员名称2...`                        | 返回标准的 Geohash 串 |
+| `geopos`            | `geopos key 成员名称1 成员名称2...`                         | 返回成员经纬度         |
+| `geodist`           | `geodist key 成员1 成员2 单位`                            | 计算成员间距离         |
+| `georadiusbymember` | `georadiusbymember key 成员 值单位 count 数 asc[desc]`    | 根据成员查找附近的成员     |
+
+应用场景:
+
+1. 记录地理位置
+2. 计算距离
+3. 查找"附近的人"
+
+```shell
+# 添加用户地址 john、jack、jude 的经纬度
+127.0.0.1:6379> geoadd user:addr 116.31 40.05 john 116.38 39.88 jack 116.47 40.00 jude
+(integer) 3
+# 获得 john 和 jude 的 Geohash
+127.0.0.1:6379> geohash user:addr john jude
+1) "wx4eydyk5m0"
+2) "wx4gd3fbgs0"
+# 获取 jack 的经纬度
+127.0.0.1:6379> geopos user:addr jack
+1) 1) "116.38000041246414185"
+   2) "39.88000114172373145"
+# 获取 john 和 jude 的距离，默认单位：米 
+127.0.0.1:6379> geodist user:addr john jude
+"14718.6972"
+# 获取 john 和 jude 的距离，单位：千米
+127.0.0.1:6379> geodist user:addr john jude km
+"14.7187"
+# 获得距离 john 20km 以内，由近到远的前三名的成员, 并获取他们的名称、距离及经纬度
+# withcoord: 获得经纬度; withdist: 获得距离; withhash: 获得geohash码
+127.0.0.1:6379> georadiusbymember user:addr john 20 km withcoord withdist count 3 asc
+1) 1) "john"
+   2) "0.0000"
+   3) 1) "116.31000012159347534"
+      2) "40.04999982043828055"
+2) 1) "jude"
+   2) "14.7187"
+   3) 1) "116.46999925374984741"
+      2) "39.99999991084916218"
+3) 1) "jack"
+   2) "19.8276"
+   3) 1) "116.38000041246414185"
+      2) "39.88000114172373145"
+127.0.0.1:6379> 
+```
+
+## 9. Stream 数据流类型
+
+Stream 是 Redis5.0 后新增的数据结构，用于可持久化的消息队列。
+
+几乎满足了消息队列具备的全部内容，包括:
+
+- 消息 ID 的序列化生成
+- 消息遍历
+- 消息的阻塞和非阻塞读取
+- 消息的分组消费
+- 未完成消息的处理
+- 消息队列监控
+
+每个 Stream 都有唯一的名称，它就是 Redis 的key，首次使用 `xadd` 指令追加消息时自动创建。
+
+常见操作命令如下表:
+
+| 命令名称         | 命令格式                                                                         | 描述                                                                 |
+|--------------|------------------------------------------------------------------------------|--------------------------------------------------------------------|
+| `xadd`       | `xadd key id <*> field1 value1....`                                          | 将指定消息数据追加到指定队列(key)中，* 表示最新生成的 id(当前时间 + 序列号)                      |
+| `xread`      | `xread [COUNT count] [BLOCK milliseconds] STREAMS key [key ...] ID [ID ...]` | 从消息队列中读取，`COUNT`: 读取条数，`BLOCK`: 阻塞读(默认不阻塞) `key`: 队列名称 `id`: 消息 id |
+| `xrange`     | `xrange key start end [COUNT]`                                               | 读取队列中给定 ID 范围的消息。`COUNT`: 返回消息条数(消息id从小到大)                         |
+| `xrevrange`  | `xrevrange key start end [COUNT]`                                            | 读取队列中给定 ID 范围的消息。`COUNT`: 返回消息条数(消息id从大到小)                         |
+| `xdel`       | `xdel key id`                                                                | 删除队列的消息                                                            |
+| `xgroup`     | `xgroup create key groupname id`                                             | 创建一个新的消费组                                                          |
+| `xgroup`     | `xgroup destory key groupname`                                               | 删除指定消费组                                                            |
+| `xgroup`     | `xgroup delconsumer key groupname cname`                                     | 删除指定消费组中的某个消费者                                                     |
+| `xgroup`     | `xgroup setid key id`                                                        | 修改指定消息的最大 id                                                       |
+| `xreadgroup` | `xreadgroup group groupname consumer COUNT streams key `                     | 从队列中的消费组中创建消费者并消费数据(`consumer` 不存在则创建)                             |
+
+应用场景: 消息队列的使用
