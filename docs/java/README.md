@@ -10,10 +10,10 @@ actions:
 
 
 - text: Kafka
-  link: /java/kafka/01/
+  link: /java/kafka/
   type: primary
 - text: Redis
-  link: /java/redis/01/
+  link: /java/redis/
   type: primary
 - text: ElasticSearch
   link: /java/es/01/
