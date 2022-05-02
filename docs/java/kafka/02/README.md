@@ -16,12 +16,14 @@ next: /java/kafka/03/
 rpm -ivh jdk-8u261-linux-x64.rpm
 ```
 
+> 这种方式默认会安装到 `/usr/java/` 目录下
+
 2. 配置环境变量:
 
 ```shell
 vim/etc/profile
 
-export JAVA_HOME=/usr/java/jdk1.8.0_261_amd64
+export JAVA_HOME=/usr/java/jdk1.8.0_261-amd64
 export PATH=$PATH:$JAVA_HOME/bin
 
 source /etc/profile
@@ -34,7 +36,7 @@ java -version
 2. 解压到 `/opt/zmn/servers` 目录
 
 ```shell
-tar -zxf zookeeper-3.4.14.tar.gz -C /opt/zmn/servers/
+tar -zxvf zookeeper-3.4.14.tar.gz -C /opt/zmn/servers/
 cd /opt/zmn/servers/zookeeper-3.4.14/conf
 
 # 复制 zoo_sample.cfg 命名为 zoo.cfg
@@ -46,7 +48,7 @@ vim zoo.cfg
 3. 修改 Zookeeper 保存数据的目录 `dataDir`
 
 ```shell
-dataDir=/var/lagou/zookeeper/data
+dataDir=/var/zmn/zookeeper/data
 ```
 
 4. 编辑 `/etc/profile`
@@ -57,7 +59,7 @@ dataDir=/var/lagou/zookeeper/data
 
 ```shell
 export ZOOKEEPER_PREFIX=/opt/zmn/servers/zookeeper-3.4.14
-export PATH=$PATH:ZOOKEEPER_PREFIX/bin
+export PATH=$PATH:$ZOOKEEPER_PREFIX/bin
 export ZOO_LOG_DIR=/var/zmn/zookeeper/log
 ```
 
@@ -82,7 +84,7 @@ tar -zxf kafka_2.12-1.0.2.tgz -C /opt/zmn/servers/
 vi /etc/profile
 
 export KAFKA_HOME=/opt/zmn/servers/kafka_2.12-1.0.2
-export PATH=$PATH:KAFKA_HOME/bin
+export PATH=$PATH:$KAFKA_HOME/bin
 ```
 
 3、配置 `$KAFKA_HOME/config` 中的 `server.properties` 文件
@@ -93,7 +95,7 @@ Kafka 连接 Zookeeper 的地址，此处使用本地启动的 Zookeeper 实例�
 zookeeper.connect=localhost:2181/myKafka
 ```
 
-配置 kafka 存储持久化数据的目录 `log.dir=/var/lagou/kafka/kafka-logs`
+配置 kafka 存储持久化数据的目录 `log.dir=/var/zmn/kafka/kafka-logs`
 
 ```shell
 mkdir -p /var/zmn/kafka/kafka-logs
@@ -131,9 +133,11 @@ ls /myKafka
 
 停止后台运行的 Kafka : `kafka-server-stop.sh`
 
-## 4. 生产与消费
+## 3. 生产与消费
 
 1、`kafka-topics.sh` 用于管理主题
+
+> 直接输入 `kafka-topics.sh` 命令可以查看帮助; `--zookeeper <String: urls>` 是必填参数
 
 ```shell
 # 列出现有的主题
@@ -156,7 +160,7 @@ kafka-topics.sh --zookeeper localhost:2181/myKafka --delete --topic topic_1
 
 ```shell
 # 开启生产者
-kafka-console-producer.sh --topic topic_1 --broker-list localhost:9020
+kafka-console-producer.sh --topic topic_1 --broker-list localhost:9092
 ```
 
 3、`kafka-console-consumer.sh` 用于消费消息
