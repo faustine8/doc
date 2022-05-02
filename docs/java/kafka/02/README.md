@@ -70,7 +70,7 @@ export ZOO_LOG_DIR=/var/zmn/zookeeper/log
 zkServer.sh status
 ```
 
-### 3. Kafka 安装与配置
+## 3. Kafka 安装与配置
 
 1、上传 kafka_2.12-1.0.2.tgz 到服务器并解压
 
@@ -133,7 +133,7 @@ ls /myKafka
 
 停止后台运行的 Kafka : `kafka-server-stop.sh`
 
-## 3. 生产与消费
+## 4. 生产与消费
 
 1、`kafka-topics.sh` 用于管理主题
 
