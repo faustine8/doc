@@ -239,29 +239,161 @@ public class MyConsumer01 {
 
 ## 2. SpringBoot Kafka
 
-1. `pom.xml` 文件
+1. `pom.xml` 文件，引入的核心依赖
 
-
+```xml
+<dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+    </dependencies>
+```
 
 2. application.properties
 
+```properties
+spring.application.name=kafka-02-springboot
+server.port=18080
 
+# Kafka 配置
+spring.kafka.bootstrap-servers=localhost:9092
 
-3. Demo02SpringbootApplication.java
+# producer 配置
+spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.IntegerSerializer
+spring.kafka.producer.value-serializer=org.apache.kafka.common.serialization.StringSerializer
+# 生产者每个批次最多放多少记录
+spring.kafka.producer.batch-size=16384
+# 生产者端总的可用发送缓冲区大小 (此处设置为 32 M)
+spring.kafka.producer.buffer-memory=33554432
 
+# consumer 配置
+spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.IntegerDeserializer
+spring.kafka.consumer.value-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+spring.kafka.consumer.group-id=springboot-consumer-02
+# 如果在 kafka 中找不到当前消费者的偏移量，则直接将偏移量重置为最早的
+spring.kafka.consumer.auto-offset-reset=earliest
+# 消费者的偏移量是自动提交还是手动提交.(此处使用自动提交)
+spring.kafka.consumer.enable-auto-commit=true
+# 消费者偏移量自动提交间隔时间
+spring.kafka.consumer.auto-commit-interval=1000
+```
 
+3. KafkaConfig.java <Badge type="tips" text="可选" vertical="top" />
 
-4. KafkaConfig.java
+```java
+@Configuration
+public class KafkaConfig {
 
+    @Bean
+    public NewTopic topic1() {
+        return new NewTopic("ntpc-01", 3, (short)1);
+    }
 
+    @Bean
+    public NewTopic topic2() {
+        return new NewTopic("ntpc-02", 5, (short)1);
+    }
 
-5. KafkaSyncProducerController.java
+    /**
+     * 自定义 KafkaAdmin
+     */
+    @Bean
+    public KafkaAdmin kafkaAdmin() {
+        HashMap<String, Object> config = new HashMap<>();
+        config.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        return new KafkaAdmin(config);
+    }
 
+    /**
+     * 自定义 KafkaTemplate
+     */
+    @Bean
+    public KafkaTemplate<Integer, String> kafkaTemplate(ProducerFactory<Integer, String> producerFactory) {
+        // 覆盖 ProducerFactory 原有设置
+        HashMap<String, Object> configOverrides = new HashMap<>();
+        configOverrides.put(ProducerConfig.BATCH_SIZE_CONFIG, 200);
+        return new KafkaTemplate<>(producerFactory, configOverrides);
+    }
+}
+```
 
+4. KafkaSyncProducerController.java
 
-6. KafkaAsyncProducerController
+> 同步发送消息
 
+```java
+@RestController
+public class SyncProducerController {
 
+    @Autowired
+    private KafkaTemplate<Integer, String> kafkaTemplate;
 
-7. MyConsumer.java
+    @RequestMapping("send/sync/{message}")
+    public String send(@PathVariable String message) {
 
+        ListenableFuture<SendResult<Integer, String>> future = kafkaTemplate.send(TopicConstant.KAFKA_TOPIC_SPRING, 0, 0, message);
+        try {
+            // 同步发送消息
+            SendResult<Integer, String> sendResult = future.get();
+            RecordMetadata metadata = sendResult.getRecordMetadata();
+            System.out.println(metadata.topic() + "\t" + metadata.partition() + "\t" + metadata.offset());
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+        return "success";
+    }
+
+}
+```
+
+5. KafkaAsyncProducerController
+
+> 异步发送消息
+
+```java
+@RestController
+public class AsyncProducerController {
+
+    @Autowired
+    private KafkaTemplate<Integer, String> kafkaTemplate;
+
+    @RequestMapping("send/async/{message}")
+    public String send(@PathVariable String message) {
+        ListenableFuture<SendResult<Integer, String>> future = kafkaTemplate.send(TopicConstant.KAFKA_TOPIC_SPRING, 0, 1, message);
+        // 设置回调函数，异步等待 Broker 端返回结果
+        future.addCallback(new ListenableFutureCallback<SendResult<Integer, String>>() {
+            @Override
+            public void onFailure(Throwable ex) {
+                System.out.println("发送消息失败：" + ex.getMessage());
+            }
+
+            @Override
+            public void onSuccess(SendResult<Integer, String> result) {
+                RecordMetadata metadata = result.getRecordMetadata();
+                System.out.println("消息发送成功！" + metadata.topic() + "\t" + metadata.partition() + "\t" + metadata.offset());
+            }
+        });
+        return "";
+    }
+}
+```
+
+6. MyConsumer.java
+
+```java
+@Component
+public class MyConsumer {
+
+    @KafkaListener(topics = TopicConstant.KAFKA_TOPIC_SPRING)
+    public void onMessage(ConsumerRecord<Integer, String> record) {
+        System.out.println("消费者收到的消息：" + record.topic() + "\t" + record.partition() + "\t" +
+                record.offset() + "\t" + record.key() + "\t" + record.value());
+    }
+
+}
+```
