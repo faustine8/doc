@@ -30,17 +30,40 @@ next: /java/kafka/05/
 
 监听器名称和安全协议的映射配置。
 
-比如，可以将内外网隔离，即使它们都使用SSL。
+> 为什么会有这种映射？因为 `listeners` 的配置如果需要两个相同的协议的 Listener，但是 Listener 的名字又不能相同。
+> 此时就可以在这里将其中一个映射一个别名，然后写在 `listeners` 中就不会有问题了。
 
-`listener.security.protocol.map=INTERNAL:SSL,EXTERNAL:SSL`
+比如，可以将内外网隔离，即让它们都使用SSL。
 
-每个监听器的名称只能在 map 中出现一次。
+```shell
+listener.security.protocol.map=INTERNAL:SSL,EXTERNAL:SSL
+# : 前面代表监听器的名称
+# : 后面代表使用的协议
+```
+
+> 每个监听器的名称只能在 map 中出现一次。
 
 - `inter.broker.listener.name`
 
 用于配置 Broker 之间通信使用的监听器名称，该名称必须在 `advertised.listeners` 列表中。
 
-`inter.broker.listener.name=EXTERNAL`
+```shell
+inter.broker.listener.name=EXTERNAL
+```
+
+- `advertised.listeners`
+
+需要将该地址发布到 zookeeper 供客户端使用，如果客户端使用的地址与 listeners 配置不同。
+
+> 可以在 zookeeper 的 `get /myKafka/brokers/ids/<broker.id>` 中找到。
+
+在 IaaS 环境，该条目的网络接口得与 Broker 绑定的网络接口不同。
+
+如果不设置此条目，就使用 `listeners` 的配置。跟 `listeners` 不同，该条目不能使用 `0.0.0.0` 网络端口。
+
+`advertised.listeners` 的地址必须是 `listeners` 中配置的或配置的一部分。
+
+> 总结一下：`listeners` > `advertised.listeners` > `inter.broker.listener.name`. <br/> (小的是大的的子集)
 
 - `listeners`
 
@@ -49,18 +72,6 @@ next: /java/kafka/05/
 如果监听器名称代表的不是安全协议，必须配置 `listener.security.protocol.map`。
 
 每个监听器必须使用不同的网络端口。
-
-- `advertised.listeners`
-
-需要将该地址发布到 zookeeper 供客户端使用，如果客户端使用的地址与 listeners 配置不同。
-
-可以在 zookeeper 的 `get /myKafka/brokers/ids/<broker.id>` 中找到。
-
-在 IaaS 环境，该条目的网络接口得与 Broker 绑定的网络接口不同。
-
-如果不设置此条目，就使用 `listeners` 的配置。跟 `listeners` 不同，该条目不能使用 `0.0.0.0` 网络端口。
-
-`advertised.listeners` 的地址必须是 `listeners` 中配置的或配置的一部分。
 
 ## 3. broker.id
 
