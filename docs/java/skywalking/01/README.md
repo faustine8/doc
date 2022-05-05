@@ -30,7 +30,7 @@ storage:
 2. 启动 SkyWalking OAP 服务
 
 ```shell
-[root@k8s-node2 bin]# ./oapService.sh 
+[root@k8s-node2 bin]# ./oapService.sh
 SkyWalking OAP started successfully!
 ```
 
@@ -51,7 +51,7 @@ SkyWalking OAP started successfully!
 1. 启动 SkyWalking UI 服务
 
 ```shell
-[root@k8s-node2 bin]# ./webappService.sh 
+[root@k8s-node2 bin]# ./webappService.sh
 SkyWalking Web Application started successfully!
 ```
 
@@ -410,3 +410,50 @@ endpoint_relation_resp_time_rule:
 
 > OAL 入门参考：<https://skywalking.apache.org/docs/main/v9.0.0/en/concepts-and-designs/oal/>
 
+
+常见报错：
+
+1. Grpc server thread pool is full, rejecting the task
+
+这个错误是因为你的oap服务的吞吐量太弱，太弱这里可以理解为：你的存储性能跟不上，或者你的oap server的配置太低都有可能， 但agent上报又快，最有效的方法是增加oap服务数量，提高底层存储配置。如果没有条件看下面：
+
+默认grpc server的线程池大小是4*cpu数，排队队列长度是10000，可以调整这两个参数大小：定位到application.yml文件。在core的default下增加
+
+gRPCThreadPoolSize: 默认是4倍的cpu，这里可以调高,例如8核默认是4*8=32，可以调成40或更多
+
+gRPCThreadPoolQueueSize：默认是10000，可以调高
+
+
+2. Can't split service id into 2 parts, org.apache.skywalking.oap.server.core.UnexpectedException: Can't split service id into 2 parts, 
+
+这种情况一般都是在 SkyWalking 老版本升级到 8.x 版本，因为存储没有清理干净导致的问题，请删除旧版本索引，再试试。
+
+v9.0.0 已知 BUG，预计 v9.1.0 修复
+
+使用三方工具查询日志：
+
+需要将配置文件 `application.yaml` 的配置项 `core/default/activeExtraModelColumns` 设置为 `true`.
+
+如：使用 Kibana
+
+> 搭建 Kibana 略 ...
+
+设置：
+
+Discovery > Index Patterns > Create index pattern
+
+输入右边的表，建议使用逻辑表
+
+使用：
+
+搜索：直接输入搜索条件，可以使用任何关键字搜索。
+
+指定字段搜索格式： `trace_id:"3e0341e4bf754f298eef423b14728b6d.300.16517398356430009"`
+
+仅展示部分列：
+
+Available Fields 列表上的任何字段后面点击 "+" 按钮
+
+去掉不想看的：在 Selected field 列表的字段后面点击 "×" 按钮 
+
+> KQL 语法，可以研究一下

@@ -141,7 +141,64 @@ Elasticsearch Head
 可以查看 Elasticsearch 的集群概要、索引、数据。
 
 
+## 安装配置kibana 
 
+1.什么是Kibana
+
+Kibana是一个基于Node.js的Elasticsearch索引库数据统计工具，可以利用Elasticsearch的聚合功 能，生成各种图表，如柱形图，线状图，饼图等。
+而且还提供了操作Elasticsearch索引数据的控制台，并且提供了一定的API提示，非常有利于我们学习 Elasticsearch 的语法。
+
+下载Kibana
+
+<https://www.elastic.co/cn/downloads/kibana>
+
+安装kibana
+   
+root账户下操作
+
+```shell
+tar -zxvf kibana-7.17.3-linux-x86_64.tar.gz
+
+mv /opt/zmn/software/kibana-7.17.3-linux-x86_64 /opt/zmn/servers/kibana/
+```
+
+改变es目录拥有者账号
+
+```shell
+chown -R estest /opt/zmn/servers/kibana/
+```
+   
+还需要设置访问权限
+
+```shell
+chmod -R  777 /opt/zmn/servers/kibana/
+```
+
+修改配置文件
+
+```shell
+vim /opt/zmn/servers/kibana/config/kibana.yml
+```
+
+修改端口，访问ip,elasticsearch服务器ip
+
+```shell
+server.port: 5601
+server.host: "0.0.0.0"
+# The URLs of the Elasticsearch instances to use for all your queries.
+elasticsearch.hosts: ["http://192.168.99.23:9200"]
+```
+
+配置完成启动:
+
+```shell
+# 切换用户
+su estest 
+
+./bin/kibana # (路径: /opt/zmn/servers/kibana)
+```
+
+访问 ip:5601，即可看到安装成功
 
 
 
