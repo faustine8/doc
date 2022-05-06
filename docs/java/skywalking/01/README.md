@@ -62,14 +62,14 @@ APM (Application Performance Management) 即应用性能管理系统，是对企
 1. 多种监控手段，语言探针和service mesh
 2. 多语言探针: Java、.NET Core、PHP、Node.JS、Go
 3. 支持多种数据存储方式: ElasticSearch、MySql、TiDB、H2、Sharding Sphere。(BanyanDB 已经研发两年了)
-4. 强大的UI可视化界面
+4. 强大的 UI 可视化界面
 5. 高性能、高可用 (agent 端探针性能消耗低，服务端支持多种集群部署方式)
 6. 支持多种指标的监控告警
 7. 微核 + 插件式扩展的高扩展框架
 
 ### 主要部分及其功能
 
-SkyWalking逻辑上分为四个部分：Probes（探针）, Platform backend（平台后端）, Storage（存储）, UI
+SkyWalking 逻辑上分为四个部分：Probes（探针）, Platform backend（平台后端）, Storage（存储）, UI 。
 
 探针就是 Agent，负责采集数据并上报给服务端，服务端对数据进行处理和存储，UI 负责展示。
 
@@ -77,7 +77,7 @@ SkyWalking逻辑上分为四个部分：Probes（探针）, Platform backend（�
 
 ### 同类型对比
 
-同类型的开源 APM 产品有: 大众点评的 Cat、韩国的 pinpoint、老牌APM zipkin，综合比较 SkyWalking 是之中最值得推荐使用的产品。
+同类型的开源 APM 产品有: 大众点评的 Cat、韩国的 pinpoint、老牌 APM zipkin，综合比较 SkyWalking 是之中最值得推荐使用的产品。
 
 SkyWalking 的优势
 

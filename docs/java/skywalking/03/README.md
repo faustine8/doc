@@ -34,7 +34,11 @@ export JAVA_AGENT=-javaagent:/opt/zmn/software/skywalking-agent/skywalking-agent
 java -jar $JAVA_AGENT -jar xxx.jar
 ```
 
+应用接入后，就可以在 SkyWalking 中查看链路追踪、拓扑图，如果需要查看详细的业务日志还需要接入日志。
+
 ## 日志接入
+
+> 会在 `zmn-framework` 中统一添加，此处仅做学习参考。
 
 ### SpringBoot 项目日志接入
 
@@ -141,7 +145,9 @@ SkyWalking 允许用户了解服务和端点之间的拓扑关系，查看每个
 
 > 搭建 Kibana 略 ...
 
-#### Kibana 初始化设置：
+#### Kibana 初始化设置
+
+> 管理员配置好后，可以直接使用了，并不是每个人都需要了解。
 
 1. Discovery > Index Patterns > Create index pattern
 

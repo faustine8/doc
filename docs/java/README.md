@@ -25,7 +25,7 @@ actions:
   link: /java/arthas/01/
   type: secondary
 - text: Skywalking
-  link: /java/skywalking/01/
+  link: /java/skywalking/
   type: secondary
 
 footer: faustine 2022
