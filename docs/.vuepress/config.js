@@ -38,7 +38,7 @@ module.exports = {
                     },
                     {
                         text: 'SkyWalking',
-                        link: '/java/skywalking/01/'
+                        link: '/java/skywalking/'
                     },
                     {
                         text: 'ElasticSearch',
