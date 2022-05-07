@@ -196,13 +196,20 @@ elasticsearch.hosts: ["http://192.168.99.23:9200"]
 su estest 
 
 ./bin/kibana # (路径: /opt/zmn/servers/kibana)
+
+# 后台启动
+nohup /opt/zmn/servers/kibana/bin/kibana &
 ```
 
 访问 ip:5601，即可看到安装成功
 
+安装 IK 分词器
 
+```shell
+/opt/zmn/servers/elasticsearch/bin/elasticsearch-plugin install https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v7.17.3/elasticsearch-analysis-ik-7.17.3.zip
+```
 
-
+然后重启 ES 和 Kibana
 
 
 
