@@ -435,6 +435,66 @@ composite-rules:
       level: CRITICAL
 ```
 
+### 预警消息发送
+
+预警消息发送支持 WebHook 的方式，同时还支持 gRPCHook、Slack Chat Hook、WeChat Hook、DingTalk Hook、Feishu Hook、WeLink Hook 等。
+
+#### WebHook
+
+WebHook 的方式，会发送 POST 请求到配置的 URL。请求的 ContentType 为 `application/json`，数据结构是 `List<org.apache.skywalking.oap.server.core.alarm.AlarmMessage>`
+
+数据结构具体如下：
+
+```json
+[{
+  "scopeId": 1,
+  "scope": "SERVICE",
+  "name": "serviceA",
+  "id0": "12",
+  "id1": "",
+  "ruleName": "service_resp_time_rule",
+  "alarmMessage": "alarmMessage xxxx",
+  "startTime": 1560524171000,
+  "tags": [{
+    "key": "level",
+    "value": "WARNING"
+  }]
+}, {
+  "scopeId": 1,
+  "scope": "SERVICE",
+  "name": "serviceB",
+  "id0": "23",
+  "id1": "",
+  "ruleName": "service_resp_time_rule",
+  "alarmMessage": "alarmMessage yyy",
+  "startTime": 1560524171000,
+  "tags": [{
+    "key": "level",
+    "value": "CRITICAL"
+  }]
+}]
+```
+
+#### DingTalk Hook
+
+除了可以用 WebHook 对接预警系统发送系统预警消息外，也可以直接通过添加钉钉机器人的方式。
+
+只需要在 `${SW_HOME}/config/alarm-settings.yml` 末尾添加如下配置即可。
+
+```yaml
+dingtalkHooks:
+  textTemplate: |-
+    {
+      "msgtype": "text",
+      "text": {
+        "content": "Apache SkyWalking Alarm: \n %s."
+      }
+    }
+  webhooks:
+    - url: https://oapi.dingtalk.com/robot/send?access_token=05b4a0bed9fe137e7fd744556d82fe73826f3fd7754df073c4b600e2a786bfc3
+      secret: SEC7bdd0717d3000fe1dbef7fdbb538a9c1f78ed0b3f7c17ae8695c8ca31d6086c9
+```
+
 ## 可能遇到的问题
 
 ### UI
