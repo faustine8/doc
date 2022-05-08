@@ -211,13 +211,101 @@ nohup /opt/zmn/servers/kibana/bin/kibana &
 
 然后重启 ES 和 Kibana
 
+```shell
+PUT /zmn-es-synonym
+```
+
+```json
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "word_sync": {
+          "type": "synonym",
+          "synonyms_path": "analysis-ik/synonym.txt"
+        }
+      },
+      "analyzer": {
+        "ik_sync_max_word": {
+          "filter": [
+            "word_sync"
+          ],
+          "type": "custom",
+          "tokenizer": "ik_max_word"
+        },
+        "ik_sync_smart": {
+          "filter": [
+            "word_sync"
+          ],
+          "type": "custom",
+          "tokenizer": "ik_smart"
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "name": {
+        "type": "text",
+        "analyzer": "ik_sync_max_word",
+        "search_analyzer": "ik_sync_max_word"
+      }
+    }
+  }
+}
+```
+
+```shell
+POST /zmn-es-synonym/_doc/1
+```
+
+```json
+{
+  "name": "啄木鸟是中国专业的家修平台"
+}
+```
 
 
+```shell
+POST /zmn-es-synonym/_doc/_search
+```
 
+```json
+{
+  "query": {
+    "match": {
+      "name": "zmn"
+    }
+  }
+}
+```
 
+```shell
+PUT /zmn-company-index
+PUT /zmn-company-index/_mapping
+```
 
-
-
+```json
+{
+  "properties": {
+    "name": {
+      "type": "text",
+      "analyzer": "ik_max_word"
+    },
+    "job": {
+      "type": "text",
+      "analyzer": "ik_max_word"
+    },
+    "logo": {
+      "type": "keyword",
+      "index": "false"
+    },
+    "payment": {
+      "type": "float"
+    }
+  }
+}
+```
 
 
 
