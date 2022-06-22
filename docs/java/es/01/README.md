@@ -135,6 +135,29 @@ su estest
 }
 ```
 
+```yaml
+configuration:
+  selector: ${SW_CONFIGURATION:nacos}
+  none:
+  nacos:
+    # Nacos Server Host
+    serverAddr: ${SW_CONFIG_NACOS_SERVER_ADDR:http://local-nacos.xiujiadian.com} # 注意 SSL 问题
+    # Nacos Server Port
+    port: ${SW_CONFIG_NACOS_SERVER_PORT:8848}
+    # Nacos Configuration Group
+    group: ${SW_CONFIG_NACOS_SERVER_GROUP:"skywalking"}
+    # Nacos Configuration namespace
+    namespace: ${SW_CONFIG_NACOS_SERVER_NAMESPACE:"e9fc0dda-5fce-42d2-94a0-b9fe516dbab3"} # 注意 namespace 不要填成了 namespaceShowName
+    # Unit seconds, sync period. Default fetch every 60 seconds.
+    period: ${SW_CONFIG_NACOS_PERIOD:60}
+    # Nacos auth username
+    username: ${SW_CONFIG_NACOS_USERNAME:"nacos"}
+    password: ${SW_CONFIG_NACOS_PASSWORD:"E4tNr26hGNY4"}
+    # Nacos auth accessKey
+    accessKey: ${SW_CONFIG_NACOS_ACCESSKEY:""}
+    secretKey: ${SW_CONFIG_NACOS_SECRETKEY:""}
+```
+
 Elasticsearch Head
 
 我们可以安装 Chrome 插件 [Elasticsearch Head]<https://chrome.google.com/webstore/detail/elasticsearch-head/ffmkiejjmecolpfloofpjologoblkegm>，

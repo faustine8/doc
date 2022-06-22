@@ -5,13 +5,16 @@ description: 首页
 home: true
 heroImage: https://cdn-statics.zmn.cn/_nuxt/img/logo_web.b793f2a.png
 heroText: 编程之旅
-tagline: Java 和 BigData 技术栈，一网打尽！
+tagline: For program, you know !
 actions:
 - text: Java
   link: /java/
   type: primary
 - text: BigData
   link: /bigdata/
+  type: secondary
+- text: 前端
+  link: /web/
   type: secondary
 
 features:
