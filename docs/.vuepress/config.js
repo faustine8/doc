@@ -48,6 +48,10 @@ module.exports = {
                         text: 'Drools',
                         link: '/java/drools/'
                     },
+                    {
+                        text: 'JVM',
+                        link: '/java/jvm/01/'
+                    },
                 ],
             },
             {

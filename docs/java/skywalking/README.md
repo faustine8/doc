@@ -19,3 +19,15 @@ next: /java/skywalking/01
 ## SkyWalking 源码
 
 [(未定稿)SkyWalking - 源码 - javaagent](/doc/java/skywalking/03/)
+
+
+
+
+
+
+| TIME  | docs.count | docs.deleted | store.size | pri.store.size |
+|-------|------------|--------------|------------|----------------|
+| 10:43 | 25,135,606 | 0            | 25gb       | 25gb           |
+| 10:53 | 26,181,346 | 0            | 23.7gb     | 23.7gb         |
+| 11:03 | 27,248,767 | 0            | 24.7gb     | 24.7gb         |
+
