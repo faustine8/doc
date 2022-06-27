@@ -31,3 +31,15 @@ next: /java/skywalking/01
 | 10:53 | 26,181,346 | 0            | 23.7gb     | 23.7gb         |
 | 11:03 | 27,248,767 | 0            | 24.7gb     | 24.7gb         |
 
+
+```shell
+sudo su - zmn
+sudo -s
+
+ll -h /a/apps/apache-skywalking-apm-bin/logs/
+
+grep "ERROR" /a/apps/apache-skywalking-apm-bin/logs/skywalking-oap-server-2022-06-24-1.log
+grep "ERROR" /a/apps/apache-skywalking-apm-bin/logs/skywalking-oap-server-2022-06-25-1.log
+grep "ERROR" /a/apps/apache-skywalking-apm-bin/logs/skywalking-oap-server-2022-06-26-1.log
+```
+
