@@ -44,7 +44,7 @@ Java 是一门抽象程度特别高的语言，提供了自动内存管理等一
 
 ![relation](./assets/README-1656053102632.png)
 
-JVM 是 Java 程序能够运行的核心。但是需要注意，JVM 自己什么也干不了，你需要给它提供生产原料( .class 文 件)。
+JVM 是 Java 程序能够运行的核心。但是需要注意，JVM 自己什么也干不了，你需要给它提供生产原料( .class 文件)。
 
 仅仅是 JVM，是无法完成一次编译，处处运行的。它需要一个基本的类库，比如怎么操作文件、怎么连接网络等。 
 而 Java 体系很慷慨，会一次性将 JVM 运行所需的类库都传递给它。JVM 标准加上实现的一大堆基础类库，就组成了 Java 的运行时环境，也就是我们常说的 JRE(Java Runtime Environment)。
@@ -81,7 +81,7 @@ public class HelloWorld {
 }
 ```
 
-使用 JDK 的工具 javac 进行编译后，会产生 HelloWorld 的字节码。
+使用 JDK 的工具 `javac` 进行编译后，会产生 HelloWorld 的字节码。
 
 我们一直在说 Java 字节码是沟通 JVM 与 Java 程序的桥梁，下面使用 javap 来稍微看一下字节码到底长什么样子。
 
@@ -113,7 +113,7 @@ javap -v HelloWorld
 
 > 左边的数字就是程序计数器。
 
-Java 虚拟机采用基于栈的架构，其指令由操作码和操作数组成。这些字节码指令 ，就叫作 opcode。其中， getstatic、ldc、invokevirtual、return 等，就是 opcode，可以看到是比较容易理解的。
+Java 虚拟机采用基于栈的架构，其指令由操作码和操作数组成。这些字节码指令，就叫作 opcode。其中， getstatic、ldc、invokevirtual、return 等，就是 opcode，可以看到是比较容易理解的。
 
 JVM 就是靠解析这些 opcode 和操作数来完成程序的执行的。当我们使用 Java 命令运行 .class 文件的时候，实际上就相当于启动了一个 JVM 进程。
 

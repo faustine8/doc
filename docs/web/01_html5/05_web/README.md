@@ -55,7 +55,6 @@ next: /web/01_html5/06_mobile
 
 ```shell{}
 .
-.
 ├── css/
 ├── images/
 └── index.html
