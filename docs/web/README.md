@@ -31,3 +31,22 @@ actions:
 footer: faustine 2022
 
 ---
+
+环境配置
+
+```shell
+# npm 配置淘宝代理
+npm config set registry https://registry.npm.taobao.org
+# 取消代理
+npm config set registry https://registry.npmjs.org
+# 查看 npm 代理
+npm info underscore
+```
+
+安装 Less
+
+```shell
+sudo npm install -g less
+# 检查是否安装成功
+lessc -v
+```

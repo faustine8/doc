@@ -41,5 +41,6 @@ ll -h /a/apps/apache-skywalking-apm-bin/logs/
 grep "ERROR" /a/apps/apache-skywalking-apm-bin/logs/skywalking-oap-server-2022-06-24-1.log
 grep "ERROR" /a/apps/apache-skywalking-apm-bin/logs/skywalking-oap-server-2022-06-25-1.log
 grep "ERROR" /a/apps/apache-skywalking-apm-bin/logs/skywalking-oap-server-2022-06-26-1.log
+grep "ERROR" /a/apps/apache-skywalking-apm-bin/logs/skywalking-oap-server-2022-06-27-1.log
 ```
 
