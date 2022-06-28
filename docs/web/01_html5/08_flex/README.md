@@ -228,19 +228,3 @@ span:nth-child(2) {
     order: <number>;
 }
 ```
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
