@@ -3,7 +3,7 @@ lang: zh-CN
 title: 移动WEB开发之rem适配布局
 description: 移动WEB开发之rem适配布局
 prev: /web/01_html5/08_flex/
-next: /web/01_html5/10/
+next: /web/01_html5/10_boostrap/
 ---
 
 掌握 rem 基础知识
@@ -69,7 +69,7 @@ div {
 }
 ```
 
-### mediatype 媒体类型
+### `mediatype` 媒体类型
 
 将不同的终端设备划分成不同的类型，称为媒体类型
 
@@ -150,7 +150,7 @@ CSS 是一门非程序式语言，没有变量、函数、SCOPE（作用域）�
 
 变量是指没有固定的值，可以动态改变的。因为我们 CSS 中的一些颜色和数值等经常使用。
 
-```less
+```less{}
 ＠变量名：值;
 ```
 
