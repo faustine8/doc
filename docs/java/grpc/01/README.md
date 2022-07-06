@@ -54,6 +54,8 @@ NewServiceGrpc gRPC 通信类的集合
 
 从客户端发起不定次请求，产生从服务器的一次响应。
 
+`requestObserver.onNext(request); ` => Server 端 `onNext()` => ... => `requestObserver.onCompleted()` => Server 端 `onCompleted()` => `responseObserver.onCompleted();`
+
 ### 双向流式 RPC 通信模式
 
 
