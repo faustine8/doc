@@ -58,6 +58,38 @@ NewServiceGrpc gRPC 通信类的集合
 
 ### 双向流式 RPC 通信模式
 
+## gRPC 与微服务架构
+
+### SpringBoot 集成 gRPC
+
+#### 基于 starter 集成
+
+```xml
+<!-- https://mvnrepository.com/artifact/net.devh/grpc-server-spring-boot-starter -->
+<dependency>
+    <groupId>net.devh</groupId>
+    <artifactId>grpc-server-spring-boot-starter</artifactId>
+    <version>2.13.1.RELEASE</version>
+</dependency>
+```
+
+```xml
+<!-- https://mvnrepository.com/artifact/net.devh/grpc-client-spring-boot-starter -->
+<dependency>
+    <groupId>net.devh</groupId>
+    <artifactId>grpc-client-spring-boot-starter</artifactId>
+    <version>2.13.1.RELEASE</version>
+</dependency>
+```
+
+### gRPC 接入 Eureka
+
+
+
+
+### 基于 JWT 的 gRPC 安全认证实现方案
+
+
 
 
 
