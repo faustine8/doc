@@ -54,6 +54,7 @@ grep "ERROR" /a/apps/apache-skywalking-apm-bin/logs/skywalking-oap-server-2022-0
 grep "ERROR" /a/apps/apache-skywalking-apm-bin/logs/skywalking-oap-server-2022-07-08-1.log
 grep "ERROR" /a/apps/apache-skywalking-apm-bin/logs/skywalking-oap-server-2022-07-09-1.log
 grep "ERROR" /a/apps/apache-skywalking-apm-bin/logs/skywalking-oap-server-2022-07-10-1.log
+grep "ERROR" /a/apps/apache-skywalking-apm-bin/logs/skywalking-oap-server-2022-07-14-1.log
 
 grep "ERROR" /a/apps/apache-skywalking-apm-bin/logs/skywalking-oap-server.log
 ```

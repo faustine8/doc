@@ -50,3 +50,19 @@ sudo npm install -g less
 # 检查是否安装成功
 lessc -v
 ```
+
+安装 yarn
+
+```shell
+sudo npm install -g yarn
+# 配置下载源
+yarn config set registry https://registry.npm.taobao.org -g
+```
+
+报错：
+
+```text
+This is a problem related to network connectivity.
+```
+
+运行 `npm config set proxy null` 
