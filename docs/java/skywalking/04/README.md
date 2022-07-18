@@ -69,9 +69,21 @@ next: /java/skywalking/05/
 > 
 > 因为配置文件中有一个 `Config.Logging#RESOLVER` 的配置项，可以配置日志的解析类型(JSON 和 PATTERN)。
 
+根据配置信息重新指定日志解析器。
 
+#### 1.4 检查 Agent 名称和 OAP Server 地址是否配置
 
+#### 1.5 标记配置加载完成
 
+### 2. 加载插件
+
+#### 2.1 自定义类加载器 AgentClassLoader
+
+调用 `registerAsParallelCapable();` 方法开启并行加载模式
+
+> 原理就是将类加载时的锁从类加载器级别缩小到具体加载的某一个类。
+
+类加载器的 classpath 是 `skywalking.plugin.mount` 指定的目录，默认是 `${SW_Agent}/plugins/` 目录和 `${SW_Agent}/activations/` 目录
 
 
 
