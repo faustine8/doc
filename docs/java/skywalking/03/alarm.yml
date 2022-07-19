@@ -4,12 +4,13 @@ rules:
     exclude-names:
       - test2-skywalking-ingress::192.168.90.90
       - test2-skywalking-ingress::192.168.90.91
+      - test2-skywalking-ingress::192.168.90.92
     op: ">"
-    threshold: 3000
+    threshold: 10000
     period: 10
     count: 3
     silence-period: 5
-    message: "{name} 在过去 10 分钟内有 3 分钟的平均响应时长超过 3000 ms。"
+    message: "{name} 在过去 10 分钟内有 3 分钟的平均响应时长超过 10 s。"
   service_sla_rule:
     metrics-name: service_sla
     op: "<"
@@ -23,12 +24,13 @@ rules:
     exclude-names:
       - test2-ingress-instance@192.168.90.90 of test2-skywalking-ingress::192.168.90.90
       - test2-ingress-instance@192.168.90.91 of test2-skywalking-ingress::192.168.90.91
+      - test2-ingress-instance@192.168.90.92 of test2-skywalking-ingress::192.168.90.92
     op: ">"
-    threshold: 3000
+    threshold: 10000
     period: 10
     count: 2
     silence-period: 5
-    message: "微服务实例 {name} 在过去 10 分钟内有 2 分钟平均响应时长超过 3000 ms。"
+    message: "{name} 在过去 10 分钟内有 2 分钟平均响应时长超过 10 1s。"
 
 dingtalkHooks:
   textTemplate: |-

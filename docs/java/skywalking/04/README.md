@@ -85,6 +85,56 @@ next: /java/skywalking/05/
 
 类加载器的 classpath 是 `skywalking.plugin.mount` 指定的目录，默认是 `${SW_Agent}/plugins/` 目录和 `${SW_Agent}/activations/` 目录
 
+#### 2.2 插件定义体系
+
+##### 插件定义： `XxxInstrumentation` 
+
+- 拦截实例方法/构造器，继承 `ClassInstanceMethodsEnhancePluginDefine`
+- 拦截静态方法，继承 `ClassStaticMethodsEnhancePluginDefine`
+
+> 其实这两个类是适配器类，都继承了 `ClassEnhancePluginDefine` 类，只是默认实现了不同的方法，减少子类的代码编写。
+
+`AbstractClassEnhancePluginDefine` 是所有插件定义的顶级父类
+
+- 要拦截的类使用 `XxxInstrumentation#enhanceClass` 方法指定
+- 要拦截的方法使用 `XxxInstrumentation#getXxxInterceptPoints` 方法指定
+
+##### 目标类匹配
+
+通过 `ClassMatch` 接口实现
+
+- 按类名匹配 `NameMatch`
+- 间接匹配(模糊匹配) `IndirectMatch`, 其中两个典型实现 `PrefixMatch`(or), `MethodAnnotationMatch`(and 需要所有注解都匹配)
+
+##### 拦截器定义
+
+- beforeMethod
+- afterMethod
+- handleMethodException
+
+操作字节码本身是比较复杂的，但是 SkyWalking 将整个逻辑抽象成了类似 AOP 的模式。
+
+##### 插件声明
+
+在 `resources/skywalking-plugin.def` 中定义 `插件名称=插件定义的全限定类名`，如：`dubbo=org.apache.skywalking.apm.plugin.asf.dubbo.DubboInstrumentation`
+
+#### 2.3 插件加载流程
+
+##### 1.PluginBootstrap 实例化所有插件
+
+- `PluginResourcesResolver` 查找 `skywalking-plugin.def` (定义了插件名称和实现的全限定类名)
+- `PluginCfg` 封装 `PluginDefine`
+- `DynamicPluginLoader` 加载基于 XML 配置的插件
+
+##### 2.PluginFinder 分类插件(根据ClassMatch)
+
+- 命名匹配插件 (`NameMatch`)
+- 间接匹配插件 (`NameMatch`)
+- JDK 类库插件
+
+
+
+
 
 
 
