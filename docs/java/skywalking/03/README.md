@@ -530,3 +530,91 @@ gRPCThreadPoolQueueSize：默认是10000，可以调高
 这种情况一般都是在 SkyWalking 老版本升级到 8.x 版本，因为存储没有清理干净导致的问题，请删除旧版本索引，再试试。
 
 v9.0.0 已知 BUG，预计 v9.1.0 修复
+
+### 日志分析
+
+application.yaml
+
+```yaml
+log-analyzer:
+  selector: ${SW_LOG_ANALYZER:default}
+  default:
+    lalFiles: ${SW_LOG_LAL_FILES:my-lal-config}
+    malFiles: ${SW_LOG_MAL_FILES:"my-lal-mal-config"}
+```
+
+lal/my-lal-config.yml
+
+```yaml
+rules:
+  - name: example
+    dsl: |
+      filter {
+        if (log.service == "TestService") {
+          abort {}
+        }
+        text {
+          if (!regexp($/(?s)(?<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}) \[TID:(?<tid>.+?)] \[(?<thread>.+?)] (?<level>\w{4,}) (?<logger>.{1,36}) - (?<msg>.+)/$)) {
+            abort {}
+          }
+        }
+        extractor {
+          metrics {
+            timestamp log.timestamp as Long
+            labels level: parsed.level, service: log.service, instance: log.serviceInstance
+            name "log_count"
+            layer 'GENERAL'
+            value 1
+          }
+        }
+        sink {
+          sampler {
+            if (log.service == "ImportantApp") {
+              rateLimit("ImportantAppSampler") {
+                rpm 18000
+              }
+            } else {
+              rateLimit("OtherSampler") {
+                rpm 1800
+              }
+            }
+          }
+        }
+      }
+
+```
+
+log-mal-rules/my-lal-mal-config.yaml
+
+```yaml
+expSuffix: instance(['service'], ['instance'], Layer.GENERAL)
+metricPrefix: log
+metricsRules:
+  - name: count_info
+    exp: log_count.tagEqual('level', 'INFO').sum(['service', 'instance'])
+  - name: count_error
+      exp: log_count.tagEqual('level', 'ERROR').sum(['service', 'instance'])
+```
+
+重启
+
+```shell
+cd /opt/zmn/servers/
+
+./apm/bin/oapService.sh
+./apm2/bin/oapService.sh
+
+
+tail -fn 200 apm/logs/skywalking-oap-server.log 
+tail -fn 200 apm2/logs/skywalking-oap-server.log
+```
+
+添加 Dashboard 然后添加 log_count_info log_count_error 没有数据。
+
+ES 也没有新的索引添加。
+
+```http request
+GET _cat/indices?s=index:asc&v=true
+```
+
+结果仍然只有 84 行，和添加前 lal 之前一样。
