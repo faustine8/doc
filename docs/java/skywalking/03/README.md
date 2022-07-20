@@ -605,7 +605,7 @@ cd /opt/zmn/servers/
 ./apm2/bin/oapService.sh
 
 
-tail -fn 200 apm/logs/skywalking-oap-server.log 
+tail -fn 200 apm/logs/skywalking-oap-server.log
 tail -fn 200 apm2/logs/skywalking-oap-server.log
 ```
 
@@ -618,3 +618,56 @@ GET _cat/indices?s=index:asc&v=true
 ```
 
 结果仍然只有 84 行，和添加前 lal 之前一样。
+
+sw_log-20220720 索引持续有文档数的增加。(也就是一直是有新的日志产生的)
+
+
+#### 新的尝试
+
+Extractor
+
+将关键字 log (安装包中的 example 文件这样写的) 改为文档上写的 parsed
+
+> 官方文档和样例配置文件，没有一个是完全正确的。开源软件的质量可见一斑。
+
+```{4}
+extractor {
+  metrics {
+    timestamp parsed.timestamp as Long
+    labels level: parsed.level, service: parsed.service, instance: parsed.serviceInstance
+    name "log_count"
+    layer 'GENERAL'
+    value 1
+  }
+}
+```
+
+服务能够正常启动。
+
+观察指标没有数据，同时日志索引文档数(21562)没有变化。
+
+#### 查看日志格式是否匹配
+
+日志样例：
+
+```text
+2022-07-20 00:06:48.544 [TID:51d7b6f78ba64a97998c413c32ad15a4.118.16582468083835363] [http-nio-19513-exec-5] INFO  ShardingSphere-SQL -SQLStatement: SelectStatement(super=DQLStatement(super=io.shardingsphere.core.parsing.parser.sql.dql.select.SelectStatement@1141c704), containStar=false, firstSelectItemStartPosition=18, selectListLastPosition=20, groupByLastPosition=0, items=[CommonSelectItem(expression=1, alias=Optional.absent())], groupByItems=[], orderByItems=[], limit=null, subQueryStatement=null, subQueryStatements=[], subQueryConditions=[])
+```
+
+> 日志格式不正确，发现是 ramework-apm-boot-starter 模块格式有误。
+
+TODO 修正日志格式。
+
+正则
+
+```regexp
+$/(?s)(?<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}) \[TID:(?<tid>.+?)] \[(?<thread>.+?)] (?<level>\w{4,}) (?<logger>.{1,36}) - (?<msg>.+)/$
+```
+
+发现 - 符合后面多了一个空格，修改为如下：
+
+```regexp
+$/(?s)(?<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}) \[TID:(?<tid>.+?)] \[(?<thread>.+?)] (?<level>\w{4,}) (?<logger>.{1,36}) -(?<msg>.+)/$
+```
+
+服务正常重启。ES上查看日志索引，没有文档数增加。ES没有索引数添加。(业务应用没有日志产生，业务应用正常产生日之后再做测试)
