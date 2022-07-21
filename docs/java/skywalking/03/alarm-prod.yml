@@ -8,7 +8,7 @@ rules:
     threshold: 10000
     period: 10
     count: 3
-    silence-period: 5
+    silence-period: 60
     message: "{name} 在过去 10 分钟内有 3 分钟的平均响应时长超过 10s。"
   service_sla_rule:
     metrics-name: service_sla
@@ -18,7 +18,7 @@ rules:
     threshold: 8000
     period: 10
     count: 2
-    silence-period: 3
+    silence-period: 60
     message: "{name} 在过去 10 分钟内有 2 分钟的请求响应成功率低于 80%。"
   service_instance_resp_time_rule:
     metrics-name: service_instance_resp_time
@@ -32,7 +32,7 @@ rules:
     threshold: 10000
     period: 10
     count: 2
-    silence-period: 5
+    silence-period: 60
     message: "{name} 在过去 10 分钟内有 2 分钟平均响应时长超过 10s。"
   endpoint_resp_time_rule:
     metrics-name: endpoint_resp_time
@@ -44,7 +44,7 @@ rules:
     threshold: 10000
     period: 10
     count: 2
-    silence-period: 30
+    silence-period: 60
     message: "{name} 在过去 10 分钟内有 2 分钟的平均响应时长超过 10s。"
 
 dingtalkHooks:
