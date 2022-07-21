@@ -132,6 +132,10 @@ next: /java/skywalking/05/
 - 间接匹配插件 (`NameMatch`)
 - JDK 类库插件
 
+### 3. 定制化 Agent
+
+- 创建 ByteBuddy 实例
+- 指定 ByteBuddy 要忽略的类
 
 
 

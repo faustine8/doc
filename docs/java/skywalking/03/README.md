@@ -593,7 +593,7 @@ metricsRules:
   - name: count_info
     exp: log_count.tagEqual('level', 'INFO').sum(['service', 'instance'])
   - name: count_error
-      exp: log_count.tagEqual('level', 'ERROR').sum(['service', 'instance'])
+    exp: log_count.tagEqual('level', 'ERROR').sum(['service', 'instance'])
 ```
 
 重启

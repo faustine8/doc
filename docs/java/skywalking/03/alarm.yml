@@ -31,6 +31,18 @@ rules:
     count: 2
     silence-period: 5
     message: "{name} 在过去 10 分钟内有 2 分钟平均响应时长超过 10 1s。"
+  endpoint_resp_time_rule:
+    metrics-name: endpoint_resp_time
+    include-names:
+      - com.zmn.oms.dubbo.interfaces.normal.order.NormalOrderWorkRemoteService.addOrder(NormalOrderWorkAddDIO)
+      - com.zmn.oms.dubbo.interfaces.zmn.master.order.MasterWorkListRemoteService.getWorkDetail(MasterWorkDIO)
+      - com.zmn.oms.dubbo.interfaces.zmn.master.order.MasterWorkListRemoteService.getDoingWork(MasterWorkDIO)
+    op: ">"
+    threshold: 10000
+    period: 10
+    count: 2
+    silence-period: 30
+    message: "{name} 在过去 10 分钟内有 2 分钟的平均响应时长超过 10 s。"
 
 dingtalkHooks:
   textTemplate: |-
