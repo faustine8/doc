@@ -3,6 +3,7 @@ rules:
     metrics-name: service_resp_time
     exclude-names:
       - prod-nginx::prod-media-nginx
+      - zmn-cube::zmn-cube-admin
     op: ">"
     threshold: 10000
     period: 10
@@ -23,6 +24,10 @@ rules:
     metrics-name: service_instance_resp_time
     exclude-names:
       - 172.17.85.182 of prod-nginx::prod-media-nginx
+      - zmn-cube-admin@172.17.3.238 of zmn-cube::zmn-cube-admin
+      - zmn-cube-admin@172.17.3.237 of zmn-cube::zmn-cube-admin
+      - zmn-cube-admin@172.17.3.216 of zmn-cube::zmn-cube-admin
+      - zmn-cube-admin@172.17.111.151 of zmn-cube::zmn-cube-admin
     op: ">"
     threshold: 10000
     period: 10
