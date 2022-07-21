@@ -4,16 +4,19 @@ rules:
     exclude-names:
       - prod-nginx::prod-media-nginx
       - zmn-cube::zmn-cube-admin
+      - zmn-cms::zmn-cms-home
     op: ">"
     threshold: 10000
     period: 10
     count: 3
     silence-period: 60
     message: "{name} 在过去 10 分钟内有 3 分钟的平均响应时长超过 10s。"
-  service_sla_rule:
-    metrics-name: service_sla
+  service_instance_sla_rule:
+    metrics-name: service_instance_sla
     exclude-names:
-      - prod-nginx::prod-media-nginx
+      - 172.17.85.182 of prod-nginx::prod-media-nginx
+      - zmn-cms::zmn-cms-home of zmn-cms-home@172.17.224.65
+      - zmn-cms::zmn-cms-home of zmn-cms-home@172.17.224.66
     op: "<"
     threshold: 8000
     period: 10
