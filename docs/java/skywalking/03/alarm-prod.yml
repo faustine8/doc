@@ -2,9 +2,7 @@ rules:
   service_resp_time_rule:
     metrics-name: service_resp_time
     exclude-names:
-      - test2-skywalking-ingress::192.168.90.90
-      - test2-skywalking-ingress::192.168.90.91
-      - test2-skywalking-ingress::192.168.90.92
+      - prod-nginx::prod-media-nginx
     op: ">"
     threshold: 10000
     period: 10
@@ -14,9 +12,7 @@ rules:
   service_sla_rule:
     metrics-name: service_sla
     exclude-names:
-      - test2-skywalking-ingress::192.168.90.90
-      - test2-skywalking-ingress::192.168.90.91
-      - test2-skywalking-ingress::192.168.90.92
+      - prod-nginx::prod-media-nginx
     op: "<"
     threshold: 8000
     period: 10
@@ -26,9 +22,7 @@ rules:
   service_instance_resp_time_rule:
     metrics-name: service_instance_resp_time
     exclude-names:
-      - test2-ingress-instance@192.168.90.90 of test2-skywalking-ingress::192.168.90.90
-      - test2-ingress-instance@192.168.90.91 of test2-skywalking-ingress::192.168.90.91
-      - test2-ingress-instance@192.168.90.92 of test2-skywalking-ingress::192.168.90.92
+      - 172.17.85.182 of prod-nginx::prod-media-nginx
     op: ">"
     threshold: 10000
     period: 10
@@ -53,9 +47,9 @@ dingtalkHooks:
     {
       "msgtype": "text",
       "text": {
-        "content": "【Test2】SkyWalking 预警: \n %s."
+        "content": "SkyWalking 预警: \n %s."
       }
     }
   webhooks:
-    - url: https://oapi.dingtalk.com/robot/send?access_token=4ed8b541f75932cbbe42d0cfca98571132565b5d9b745f690fc2bbdd843d81a2
-      secret: SEC892f956e2bfb87087b83170a78bd926402e2af7eb07f0e17ffcc5fc8cea2637a
+    - url: https://oapi.dingtalk.com/robot/send?access_token=e2c6c28ba91b92984c9b570f01bb274513d7966aaec0c2d1c009ba7408accc3d
+      secret: SECf22681f75622a833416bc30ef2c9eba39404529496c71add4501971c18e2590f
