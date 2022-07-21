@@ -15,7 +15,7 @@ rules:
     metrics-name: service_instance_sla
     exclude-names:
       - 172.17.85.182 of prod-nginx::prod-media-nginx
-      - zmn-cms-home@172.17.224.66 of zmn-cms::zmn-cms-home
+      - zmn-cms-home@172.17.224.65 of zmn-cms::zmn-cms-home
       - zmn-cms-home@172.17.224.66 of zmn-cms::zmn-cms-home
     op: "<"
     threshold: 8000
