@@ -720,3 +720,85 @@ log-analyzer:
     lalFiles: ${SW_LOG_LAL_FILES:default}
     malFiles: ${SW_LOG_MAL_FILES:""}
 ```
+
+再次尝试转义, 参照官网文档，在转义字母前加两个 \\
+
+```
+(?<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.\\d{3}) \\\[TID:(?<tid>.+?)] \\\[(?<thread>.+?)] (?<level>\\w{4,}) (?<logger>.{1,36}) -(?<msg>.+)
+```
+
+启动仍然报错。全部转义，然后小括号和关键字按照官网的实例方式书写，再次尝试如下：
+
+```
+(?<timestamp>\\d\{4\}\-\\d\{2\}\-\\d\{2\} \\d\{2\}:\\d\{2\}:\\d\{2\}\.\\d\{3\}) \\\[TID:(?<tid>.+?)\] \\\[(?<thread>.+?)\] (?<level>\\w\{4,\}) (?<logger>.\{1,36\}\) \-\(?<msg>.+)
+```
+
+仍然报错。完全转义，尝试：
+
+```
+\(\?<timestamp>\\d\{4\}\-\\d\{2\}\-\\d\{2\} \\d\{2\}:\\d\{2\}:\\d\{2\}\.\\d\{3\}\) \\\[TID:\(\?<tid>\.\+\?\)\] \\\[\(\?<thread>\.\+\?\)\] \(\?<level>\\w\{4,\}\) \(\?<logger>\.\{1,36\}\) \-\(\?<msg>\.\+\)
+```
+
+字符串改 '' 单引号为 "" 双引号，仍然报错。
+
+查看源代码发现：此处使用的是 Groovy 的 DSL。查看源代码的单元测试，修改为如下格式：
+
+```
+regexp $/(?s)(?<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}) \[TID:(?<tid>.+?)] \[(?<thread>.+?)] (?<level>\w{4,}) (?<logger>.{1,36}) -(?<msg>.+)/$
+```
+
+正常重启。运行时报：`java.lang.NumberFormatException: For input string: "2022-07-22 14:40:02.565"`
+
+怀疑是 parsed 要将字符串转为 long，修改 metrics 部分的配置
+
+```
+extractor {
+  metrics {
+    timestamp parsed.timestamp as String
+    labels level: parsed.level as String, service: log.service as String, instance: log.serviceInstance as String
+    name "log_count"
+    value 1
+  }
+}
+```
+
+重启正常。运行时报 `Cannot cast object 'OtherSampler' with class 'java.lang.String' to class 'groovy.lang.GString'` 异常。
+
+查看 OtherSampler 在源代码中的位置。删除 sampler 的配置内容。
+
+22 14:51 重新启动。能够正常启动。未见异常。但是仍然未见指标数据。
+
+尝试全部添加强制保存。
+
+```
+sink {
+  enforcer {
+  }
+}
+```
+
+22 15:02 重新启动正常。页面上没有指标数据。ES 没有新增索引。
+
+```http request
+POST /sw_metrics-sum-20220722/_search
+```
+```http request
+POST /sw_metrics-count-20220722/_search
+```
+```json
+{
+  "size": 0,
+  "aggs": {
+    "metric_types": {
+      "terms": {
+        "field": "metric_table"
+      }
+    }
+  }
+}
+```
+
+日志一直有增长，但是这两个索引没有  `log_count` 相关的数据。
+
+
+
