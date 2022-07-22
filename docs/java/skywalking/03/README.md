@@ -677,3 +677,46 @@ $/(?s)(?<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}) \[TID:(?<tid>.+?)]
 21 18:21 删除 application.yml 中的 mal 配置重启。
 
 日志恢复。
+
+可以断定：正则和实际的日志不匹配，因此被丢弃。
+
+22 09:35 删除 `abort {}` 语法
+
+```
+text {
+  abortOnFailure true
+  regexp "(?<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}) \[TID:(?<tid>.+?)] \[(?<thread>.+?)] (?<level>\w{4,}) (?<logger>.{1,36}) -(?<msg>.+)"
+}
+```
+
+重新启动, 报告语法错误。
+
+尝试将正则内容全部转义
+
+```
+regexp "(?<timestamp>\\d\{4\}-\\d\{2\}-\\d\{2\} \\d\{2\}:\d{2\}:\\d\{2\}.\\d\{3\}) \[TID:(?<tid>.+?)\] \[(?<thread>.+?)\] (?<level>\\w\{4,\}) (?<logger>.\{1,36\}) -(?<msg>.+)"
+```
+
+仍然报告语法错误。
+
+尝试删除正则，能够正常启动，但是报如下错误：
+
+```
+org.codehaus.groovy.runtime.typehandling.GroovyCastException: Cannot cast object 'OtherSampler' with class 'java.lang.String' to class 'groovy.lang.GString'
+```
+
+从文档上看，也是需要通过指定正则匹配日志。
+
+<https://skywalking.apache.org/docs/main/v9.1.0/en/concepts-and-designs/lal/#text>
+
+> 而且从使用上看，能够作为指标统计的，只能是固定的几个 Tag，很难对日志消息做全文解析然后分析出想要的异常类型。
+
+22 11:10 删除 lal 相关配置重启应用。
+
+```yaml
+log-analyzer:
+  selector: ${SW_LOG_ANALYZER:default}
+  default:
+    lalFiles: ${SW_LOG_LAL_FILES:default}
+    malFiles: ${SW_LOG_MAL_FILES:""}
+```
