@@ -43,12 +43,17 @@ rules:
       - com.zmn.oms.dubbo.interfaces.normal.order.NormalOrderWorkRemoteService.addOrder(NormalOrderWorkAddDIO) in zmn-oms::zmn-oms-dubbo
       - com.zmn.oms.dubbo.interfaces.zmn.master.order.MasterWorkListRemoteService.getWorkDetail(MasterWorkDIO) in zmn-oms::zmn-oms-dubbo
       - com.zmn.oms.dubbo.interfaces.zmn.master.order.MasterWorkListRemoteService.getDoingWork(MasterWorkDIO) in zmn-oms::zmn-oms-dubbo
+      - com.zmn.mos.dubbo.interfaces.order.OrderModifyRemoteService.addOrder(OrderAddDIO) in zmn-mos::zmn-mos-dubbo
+      - com.zmn.mos.dubbo.interfaces.order.ChannelApiOrderRemoteService.addOrder(ChannelApiOrderAddDIO) in zmn-mos::zmn-mos-dubbo
+      - com.zmn.mos.dubbo.interfaces.order.QuotationOrderRemoteService.addOrder(QuotationOrderAddDIO) in zmn-mos::zmn-mos-dubbo
+      - com.zmn.mos.dubbo.interfaces.order.NormalOrderRemoteService.addOrder(NormalOrderAddDIO) in zmn-mos::zmn-mos-dubbo
+      - com.zmn.mos.dubbo.interfaces.order.VasOrderModifyRemoteService.addOrder(VasOrderAddDIO) in zmn-mos::zmn-mos-dubbo
     op: ">"
-    threshold: 10000
+    threshold: 5000
     period: 10
     count: 2
     silence-period: 60
-    message: "{name} 在过去 10 分钟内有 2 分钟的平均响应时长超过 10s。"
+    message: "{name} 在过去 10 分钟内有 2 分钟的平均响应时长超过 5s。"
 
 dingtalkHooks:
   textTemplate: |-
