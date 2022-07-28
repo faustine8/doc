@@ -830,6 +830,13 @@ instance_jvm_memory_noheap_used_percent = from(ServiceInstanceJVMMemory.used).fi
 instance_jvm_memory_heap_used_percent = from(ServiceInstanceJVMMemory.*).percent(heapStatus == true);       // 恒等于 50
 instance_jvm_memory_noheap_used_percent = from(ServiceInstanceJVMMemory.used).percent(heapStatus == false); // 恒等于 50
 
+# 修改源代码后
+instance_jvm_memory_heap_used_percent = from(ServiceInstanceJVMMemory.heapUsage).doubleAvg();
+instance_jvm_memory_noheap_used_percent = from(ServiceInstanceJVMMemory.noHeapUsage).doubleAvg(); // 数值为真实值的一半
+
+# 终极方案
+instance_jvm_memory_heap_used_percent = from(ServiceInstanceJVMMemory.usage).filter(heapStatus == true).doubleAvg();
+instance_jvm_memory_noheap_used_percent = from(ServiceInstanceJVMMemory.usage).filter(heapStatus == false).doubleAvg();
 ```
 
 然后在 Service 的 Dashboard 和 Endpoint 的 Dashboard 添加面板展示这两个指标。
