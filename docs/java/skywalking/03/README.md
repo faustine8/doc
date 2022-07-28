@@ -801,4 +801,154 @@ POST /sw_metrics-count-20220722/_search
 日志一直有增长，但是这两个索引没有  `log_count` 相关的数据。
 
 
+### 添加错误端点统计
+
+```
+# 端点异常量
+endpoint_error_count = from(Endpoint.*).filter(status == false).count();
+# 微服务异常总量
+service_error_count = from(Service.*).filter(status == false).count();
+
+# JVM 内存使用百分比
+instance_jvm_memory_used_percent = from(ServiceInstanceJVMMemory.*).rate(used, max); // error
+instance_jvm_memory_heap_used_percent = from(ServiceInstanceJVMMemory.*).filter(heapStatus == true).rate(used > 0l, max > 0l); // 恒等于 100
+
+
+# JVM 堆内存使用百分比
+instance_jvm_memory_heap_used_percent = from(ServiceInstanceJVMMemory.used).percent(heapStatus == true); // 恒等于 50
+instance_jvm_memory_noheap_used_percent = from(ServiceInstanceJVMMemory.used).percent(heapStatus == false); // 恒等于 50
+
+instance_jvm_memory_heap_used_percent = instance_jvm_memory_heap / instance_jvm_memory_heap_max;        // java.lang.IllegalArgumentException: Can't find metrics, null
+instance_jvm_memory_noheap_used_percent = instance_jvm_memory_noheap / instance_jvm_memory_noheap_max;  // java.lang.IllegalArgumentException: Can't find metrics, null
+
+
+instance_jvm_memory_used_percent = from(ServiceInstanceJVMMemory.used).percent(); //  argument can't find funcParamExpression.
+instance_jvm_memory_heap_used_percent = from(ServiceInstanceJVMMemory.used).filter(heapStatus == true).percent();   //  argument can't find funcParamExpression.
+instance_jvm_memory_noheap_used_percent = from(ServiceInstanceJVMMemory.used).filter(heapStatus == false).percent();//  argument can't find funcParamExpression.
+
+
+instance_jvm_memory_heap_used_percent = from(ServiceInstanceJVMMemory.*).percent(heapStatus == true);       // 恒等于 50
+instance_jvm_memory_noheap_used_percent = from(ServiceInstanceJVMMemory.used).percent(heapStatus == false); // 恒等于 50
+
+```
+
+然后在 Service 的 Dashboard 和 Endpoint 的 Dashboard 添加面板展示这两个指标。
+
+### Log4J Appender
+
+```properties
+log4j.rootLogger=WARN,loghub
+
+log4j.appender.loghub=com.aliyun.openservices.log.log4j.LoghubAppender
+
+#日志服务的project名，必选参数
+log4j.appender.loghub.project=[your project]
+#日志服务的logstore名，必选参数
+log4j.appender.loghub.logStore=[your logStore]
+#日志服务的http地址，必选参数
+log4j.appender.loghub.endpoint=[your project endpoint]
+#用户身份标识，必选参数
+log4j.appender.loghub.accessKeyId=[your accesskey id]
+log4j.appender.loghub.accessKeySecret=[your accessKeySecret]
+
+#设置 log 字段格式，必选参数
+log4j.appender.loghub.layout=org.apache.log4j.PatternLayout
+log4j.appender.loghub.layout.ConversionPattern=%-4r [%t] %-5p %c %x - %m%n
+
+#单个 producer 实例能缓存的日志大小上限，默认为 100MB。
+log4j.appender.loghub.totalSizeInBytes=104857600
+#如果 producer 可用空间不足，调用者在 send 方法上的最大阻塞时间，默认为 60 秒。为了不阻塞打印日志的线程，强烈建议将该值设置成 0。
+log4j.appender.loghub.maxBlockMs=0
+#执行日志发送任务的线程池大小，默认为可用处理器个数。
+log4j.appender.loghub.ioThreadCount=8
+#当一个 ProducerBatch 中缓存的日志大小大于等于 batchSizeThresholdInBytes 时，该 batch 将被发送，默认为 512 KB，最大可设置成 5MB。
+log4j.appender.loghub.batchSizeThresholdInBytes=524288
+#当一个 ProducerBatch 中缓存的日志条数大于等于 batchCountThreshold 时，该 batch 将被发送，默认为 4096，最大可设置成 40960。
+log4j.appender.loghub.batchCountThreshold=4096
+#一个 ProducerBatch 从创建到可发送的逗留时间，默认为 2 秒，最小可设置成 100 毫秒。
+log4j.appender.loghub.lingerMs=2000
+#如果某个 ProducerBatch 首次发送失败，能够对其重试的次数，默认为 10 次。
+#如果 retries 小于等于 0，该 ProducerBatch 首次发送失败后将直接进入失败队列。
+log4j.appender.loghub.retries=10
+#该参数越大能让您追溯更多的信息，但同时也会消耗更多的内存。
+log4j.appender.loghub.maxReservedAttempts=11
+#首次重试的退避时间，默认为 100 毫秒。
+#Producer 采样指数退避算法，第 N 次重试的计划等待时间为 baseRetryBackoffMs * 2^(N-1)。
+log4j.appender.loghub.baseRetryBackoffMs=100
+#重试的最大退避时间，默认为 50 秒。
+log4j.appender.loghub.maxRetryBackoffMs=50000
+
+#指定日志主题，默认为 ""，可选参数
+log4j.appender.loghub.topic = [your topic]
+
+#指的日志来源，默认为应用程序所在宿主机的 IP，可选参数
+log4j.appender.loghub.source = [your source]
+
+#设置时间格式，默认为 yyyy-MM-dd'T'HH:mm:ssZ，可选参数
+log4j.appender.loghub.timeFormat=yyyy-MM-dd'T'HH:mm:ssZ
+#设置时区，默认为 UTC，可选参数（如果希望 time 字段的时区为东八区，可将该值设定为 Asia/Shanghai）
+log4j.appender.loghub.timeZone=UTC
+```
+
+
+示例
+
+```properties
+log4j.rootLogger=DEBUG,loghubAppender1, loghubAppender2, STDOUT
+
+#loghubAppender1
+log4j.appender.loghubAppender1=com.aliyun.openservices.log.log4j.LoghubAppender
+#日志服务的project名，必选参数
+log4j.appender.loghubAppender1.project=test-proj
+#日志服务的logstore名，必选参数
+log4j.appender.loghubAppender1.logStore=store1
+#日志服务的http地址，必选参数
+log4j.appender.loghubAppender1.endpoint=
+#用户身份标识，必选参数
+log4j.appender.loghubAppender1.accessKeyId=
+log4j.appender.loghubAppender1.accessKeySecret=
+#设置log字段的格式，必选参数
+log4j.appender.loghubAppender1.layout=org.apache.log4j.PatternLayout
+log4j.appender.loghubAppender1.layout.ConversionPattern=%-4r [%t] %-5p %c %x - %m%n
+#指定日志主题，可选参数
+log4j.appender.loghubAppender1.topic = topic1
+#指定日志来源，可选参数
+log4j.appender.loghubAppender1.source = source1
+#设置时间格式，可选参数
+log4j.appender.loghubAppender1.timeFormat=yyyy-MM-dd'T'HH:mm:ssZ
+#设置时区，可选参数
+log4j.appender.loghubAppender1.timeZone=UTC
+#输出WARN级别及以上的消息
+log4j.appender.loghubAppender1.Threshold=WARN
+
+#loghubAppender2
+log4j.appender.loghubAppender2=com.aliyun.openservices.log.log4j.LoghubAppender
+#日志服务的project名，必选参数
+log4j.appender.loghubAppender2.project=test-proj
+#日志服务的logstore名，必选参数
+log4j.appender.loghubAppender2.logStore=store2
+#日志服务的http地址，必选参数
+log4j.appender.loghubAppender2.endpoint=
+#用户身份标识，必选参数
+log4j.appender.loghubAppender2.accessKeyId=
+log4j.appender.loghubAppender2.accessKeySecret=
+#设置log字段的格式，必选参数
+log4j.appender.loghubAppender2.layout=org.apache.log4j.PatternLayout
+log4j.appender.loghubAppender2.layout.ConversionPattern=%-4r [%t] %-5p %c %x - %m%n
+#指定日志主题，可选参数
+log4j.appender.loghubAppender2.topic = topic2
+#指定日志来源，可选参数
+log4j.appender.loghubAppender2.source = source2
+#设置时间格式，可选参数
+log4j.appender.loghubAppender2.timeFormat=yyyy-MM-dd'T'HH:mm:ssZ
+#设置时区为东八区，可选参数
+log4j.appender.loghubAppender2.timeZone=Asia/Shanghai
+#输出INFO级别及以上的消息
+log4j.appender.loghubAppender2.Threshold=INFO
+
+#STDOUT
+log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender
+log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout
+log4j.appender.STDOUT.layout.ConversionPattern=%-4r [%t] %-5p %c %x - %m%n
+```
 

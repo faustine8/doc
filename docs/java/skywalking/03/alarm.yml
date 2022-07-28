@@ -10,7 +10,7 @@ rules:
     period: 10
     count: 3
     silence-period: 5
-    message: "{name} 在过去 10 分钟内有 3 分钟的平均响应时长超过 10s。"
+    message: "{name} 在过去 10 分钟内有 3 分钟的平均响应时长超过 10s"
   service_sla_rule:
     metrics-name: service_sla
     exclude-names:
@@ -22,7 +22,7 @@ rules:
     period: 10
     count: 2
     silence-period: 3
-    message: "{name} 在过去 10 分钟内有 2 分钟的请求响应成功率低于 80%。"
+    message: "{name} 在过去 10 分钟内有 2 分钟的请求响应成功率低于 80%"
   service_instance_resp_time_rule:
     metrics-name: service_instance_resp_time
     exclude-names:
@@ -34,7 +34,7 @@ rules:
     period: 10
     count: 2
     silence-period: 5
-    message: "{name} 在过去 10 分钟内有 2 分钟平均响应时长超过 10s。"
+    message: "{name} 在过去 10 分钟内有 2 分钟平均响应时长超过 10s"
   endpoint_resp_time_rule:
     metrics-name: endpoint_resp_time
     include-names:
@@ -46,7 +46,23 @@ rules:
     period: 10
     count: 2
     silence-period: 30
-    message: "{name} 在过去 10 分钟内有 2 分钟的平均响应时长超过 10s。"
+    message: "{name} 在过去 10 分钟内有 2 分钟的平均响应时长超过 10s"
+  instance_jvm_old_gc_count_rule:
+    metrics-name: instance_jvm_old_gc_count
+    op: ">"
+    threshold: 5
+    period: 10
+    count: 2
+    silence-period: 30
+    message: "{name} 的 JVM 在过去 10 分钟内有 2 分钟的平均老年代 GC 次数超过 5 次"
+  instance_jvm_cpu_rule:
+    metrics-name: instance_jvm_cpu
+    op: ">"
+    threshold: 90
+    period: 10
+    count: 2
+    silence-period: 30
+    message: "{name} 的 JVM 在过去 10 分钟内有 2 分钟的平均 CPU 使用率超过 90%"
 
 dingtalkHooks:
   textTemplate: |-
