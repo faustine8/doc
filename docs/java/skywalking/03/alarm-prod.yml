@@ -5,7 +5,7 @@ rules:
       - prod-nginx::prod-media-nginx
       - zmn-cube::zmn-cube-admin
       - zmn-cms::zmn-cms-home
-      - /.*\-task$/
+    exclude-names-regex: .*-task$
     op: ">"
     threshold: 10000
     period: 10
@@ -18,7 +18,7 @@ rules:
       - 172.17.85.182 of prod-nginx::prod-media-nginx
       - zmn-cms-home@172.17.224.65 of zmn-cms::zmn-cms-home
       - zmn-cms-home@172.17.224.66 of zmn-cms::zmn-cms-home
-      - /.*\-task$/
+    exclude-names-regex: .*-task$
     op: "<"
     threshold: 6000
     period: 10
@@ -33,7 +33,7 @@ rules:
       - zmn-cube-admin@172.17.3.237 of zmn-cube::zmn-cube-admin
       - zmn-cube-admin@172.17.3.216 of zmn-cube::zmn-cube-admin
       - zmn-cube-admin@172.17.111.151 of zmn-cube::zmn-cube-admin
-      - /.*\-task$/
+    exclude-names-regex: .*-task$
     op: ">"
     threshold: 10000
     period: 10
@@ -61,7 +61,7 @@ rules:
     metrics-name: instance_jvm_old_gc_count
     op: ">"
     threshold: 5
-    period: 1
+    period: 2
     count: 1
     silence-period: 5
     message: "{name} 的 JVM 在过去 1 分钟的老年代 GC 次数超过 5 次"
@@ -83,7 +83,5 @@ dingtalkHooks:
       }
     }
   webhooks:
-    - url: https://oapi.dingtalk.com/robot/send?access_token=e2c6c28ba91b92984c9b570f01bb274513d7966aaec0c2d1c009ba7408accc3d
-      secret: SECf22681f75622a833416bc30ef2c9eba39404529496c71add4501971c18e2590f
     - url: https://oapi.dingtalk.com/robot/send?access_token=a5d12e647436adcba7a340b1a258fc1751ff0bef9a57d56112c6c2208b43e20a
       secret: SECc50b53315830a395c761dd7cc74c77cc7b5fc6eb0bcfd39bf670271a0f67fa3f

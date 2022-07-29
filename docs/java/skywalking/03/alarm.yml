@@ -5,7 +5,7 @@ rules:
       - test2-skywalking-ingress::192.168.90.90
       - test2-skywalking-ingress::192.168.90.91
       - test2-skywalking-ingress::192.168.90.92
-      - /.*\-task$/
+    exclude-names-regex: .*-task$
     op: ">"
     threshold: 10000
     period: 10
@@ -18,7 +18,7 @@ rules:
       - test2-skywalking-ingress::192.168.90.90
       - test2-skywalking-ingress::192.168.90.91
       - test2-skywalking-ingress::192.168.90.92
-      - /.*\-task$/
+    exclude-names-regex: .*-task$
     op: "<"
     threshold: 8000
     period: 10
@@ -31,7 +31,7 @@ rules:
       - test2-ingress-instance@192.168.90.90 of test2-skywalking-ingress::192.168.90.90
       - test2-ingress-instance@192.168.90.91 of test2-skywalking-ingress::192.168.90.91
       - test2-ingress-instance@192.168.90.92 of test2-skywalking-ingress::192.168.90.92
-        - /.*\-task$/
+    exclude-names-regex: .*-task$
     op: ">"
     threshold: 10000
     period: 10
@@ -54,7 +54,7 @@ rules:
     metrics-name: instance_jvm_old_gc_count
     op: ">"
     threshold: 5
-    period: 1
+    period: 2
     count: 1
     silence-period: 5
     message: "{name} 的 JVM 在过去 1 分钟的老年代 GC 次数超过 5 次"
