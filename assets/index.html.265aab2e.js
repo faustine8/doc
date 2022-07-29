@@ -1,0 +1,1 @@
+const e={key:"v-00b23426",path:"/java/servers/nginx/01/",title:"",lang:"zh-CN",frontmatter:{},excerpt:"",headers:[],git:{updatedTime:1655881675e3,contributors:[{name:"mujunlin",email:"faustine923@icloud.com",commits:1}]},filePathRelative:"java/servers/nginx/01/README.md"};export{e as data};
