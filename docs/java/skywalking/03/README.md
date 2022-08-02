@@ -959,3 +959,25 @@ log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout
 log4j.appender.STDOUT.layout.ConversionPattern=%-4r [%t] %-5p %c %x - %m%n
 ```
 
+
+
+## Kibana 使用
+
+统计指标
+```http request
+POST /sw_metrics-longavg-20220722/_search
+```
+```json
+{
+  "size": 0,
+  "aggs": {
+    "metric_types": {
+      "terms": {
+        "field": "metric_table"
+      }
+    }
+  }
+}
+```
+
+2022-08-02 16:36 Devops GitLab Token : glpat-9hbRQcEQockDsnM3FNnh
