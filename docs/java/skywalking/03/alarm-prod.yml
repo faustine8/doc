@@ -24,7 +24,7 @@ rules:
     period: 10
     count: 2
     silence-period: 30
-    only-as-condition: false
+    only-as-condition: true
   service_instance_sla_condition_rule:
     metrics-name: service_instance_sla
     exclude-names:
@@ -37,7 +37,7 @@ rules:
     period: 10
     count: 2
     silence-period: 30
-    only-as-condition: false
+    only-as-condition: true
   service_instance_resp_time_rule:
     metrics-name: service_instance_resp_time
     exclude-names:
