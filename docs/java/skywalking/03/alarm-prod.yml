@@ -10,9 +10,22 @@ rules:
     threshold: 10000
     period: 10
     count: 3
-    silence-period: 10
+    silence-period: 30
     message: "{name} 在过去 10 分钟内有 3 分钟的平均响应时长超过 10s"
-  service_instance_sla_rule:
+  service_instance_cpm_condition_rule:
+    metrics-name: service_instance_sla
+    exclude-names:
+      - 172.17.85.182 of prod-nginx::prod-media-nginx
+      - zmn-cms-home@172.17.224.65 of zmn-cms::zmn-cms-home
+      - zmn-cms-home@172.17.224.66 of zmn-cms::zmn-cms-home
+    exclude-names-regex: .*-task$
+    op: ">"
+    threshold: 50
+    period: 10
+    count: 2
+    silence-period: 30
+    only-as-condition: false
+  service_instance_sla_condition_rule:
     metrics-name: service_instance_sla
     exclude-names:
       - 172.17.85.182 of prod-nginx::prod-media-nginx
@@ -23,8 +36,8 @@ rules:
     threshold: 6000
     period: 10
     count: 2
-    silence-period: 60
-    message: "{name} 在过去 10 分钟内有 2 分钟的请求响应成功率低于 60%"
+    silence-period: 30
+    only-as-condition: false
   service_instance_resp_time_rule:
     metrics-name: service_instance_resp_time
     exclude-names:
@@ -38,7 +51,7 @@ rules:
     threshold: 10000
     period: 10
     count: 2
-    silence-period: 60
+    silence-period: 30
     message: "{name} 在过去 10 分钟内有 2 分钟平均响应时长超过 10s"
   endpoint_resp_time_rule:
     metrics-name: endpoint_resp_time
@@ -71,15 +84,20 @@ rules:
     threshold: 90
     period: 3
     count: 1
-    silence-period: 10
-    message: "{name} 的 JVM 在过去 3 分钟内有 1 分钟的平均 CPU 使用率超过 90%"
+    silence-period: 5
+    message: "{name} 在过去 3 分钟内有 1 分钟的平均 CPU 使用率超过 90%"
+
+composite-rules:
+  instance_cpm_sla_comp_rule:
+    expression: service_instance_cpm_condition_rule && service_instance_sla_condition_rule
+    message: "{name} 在过去 10 分钟内有 2 分钟的平均请求数高于 50 且请求响应成功率低于 60%"
 
 dingtalkHooks:
   textTemplate: |-
     {
       "msgtype": "text",
       "text": {
-        "content": "SkyWalking 预警: \n %s."
+        "content": "%s."
       }
     }
   webhooks:

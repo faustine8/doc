@@ -10,10 +10,23 @@ rules:
     threshold: 10000
     period: 10
     count: 3
-    silence-period: 5
+    silence-period: 30
     message: "{name} 在过去 10 分钟内有 3 分钟的平均响应时长超过 10s"
-  service_sla_rule:
-    metrics-name: service_sla
+  service_instance_cpm_condition_rule:
+    metrics-name: service_instance_sla
+    exclude-names:
+      - 172.17.85.182 of prod-nginx::prod-media-nginx
+      - zmn-cms-home@172.17.224.65 of zmn-cms::zmn-cms-home
+      - zmn-cms-home@172.17.224.66 of zmn-cms::zmn-cms-home
+    exclude-names-regex: .*-task$
+    op: ">"
+    threshold: 50
+    period: 10
+    count: 2
+    silence-period: 30
+    only-as-condition: true
+  service_instance_sla_condition_rule:
+    metrics-name: service_instance_sla
     exclude-names:
       - test2-skywalking-ingress::192.168.90.90
       - test2-skywalking-ingress::192.168.90.91
@@ -23,8 +36,8 @@ rules:
     threshold: 8000
     period: 10
     count: 2
-    silence-period: 3
-    message: "{name} 在过去 10 分钟内有 2 分钟的请求响应成功率低于 80%"
+    silence-period: 30
+    only-as-condition: true
   service_instance_resp_time_rule:
     metrics-name: service_instance_resp_time
     exclude-names:
@@ -36,7 +49,7 @@ rules:
     threshold: 10000
     period: 10
     count: 2
-    silence-period: 5
+    silence-period: 30
     message: "{name} 在过去 10 分钟内有 2 分钟平均响应时长超过 10s"
   endpoint_resp_time_rule:
     metrics-name: endpoint_resp_time
@@ -45,11 +58,11 @@ rules:
       - com.zmn.oms.dubbo.interfaces.zmn.master.order.MasterWorkListRemoteService.getWorkDetail(MasterWorkDIO) in zmn-oms::zmn-oms-dubbo
       - com.zmn.oms.dubbo.interfaces.zmn.master.order.MasterWorkListRemoteService.getDoingWork(MasterWorkDIO) in zmn-oms::zmn-oms-dubbo
     op: ">"
-    threshold: 10000
+    threshold: 5000
     period: 10
     count: 2
-    silence-period: 30
-    message: "{name} 在过去 10 分钟内有 2 分钟的平均响应时长超过 10s"
+    silence-period: 5
+    message: "{name} 在过去 10 分钟内有 2 分钟的平均响应时长超过 5s"
   instance_jvm_old_gc_count_rule:
     metrics-name: instance_jvm_old_gc_count
     op: ">"
@@ -64,8 +77,13 @@ rules:
     threshold: 90
     period: 3
     count: 1
-    silence-period: 10
-    message: "{name} 的 JVM 在过去 10 分钟内有 2 分钟的平均 CPU 使用率超过 90%"
+    silence-period: 5
+    message: "{name} 在过去 3 分钟内有 1 分钟的平均 CPU 使用率超过 90%"
+
+composite-rules:
+  instance_cpm_sla_comp_rule:
+    expression: service_instance_cpm_condition_rule && service_instance_sla_condition_rule
+    message: "{name} 在过去 10 分钟内有 2 分钟的平均请求数高于 50 且请求响应成功率低于 60%"
 
 dingtalkHooks:
   textTemplate: |-
