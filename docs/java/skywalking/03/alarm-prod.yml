@@ -110,6 +110,9 @@ composite-rules:
     expression: service_instance_cpm_condition_rule && service_instance_pivotal_sla_condition_rule
     message: "{name} 在过去 10 分钟内有 2 分钟的平均请求数高于 50 且请求响应成功率低于 98%"
 
+webhooks:
+  - http://172.17.3.218:9512/v1/alerts/prod/apm
+
 dingtalkHooks:
   textTemplate: |-
     {
