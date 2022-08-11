@@ -38,6 +38,17 @@ rules:
     count: 2
     silence-period: 30
     only-as-condition: true
+  service_instance_pivotal_sla_condition_rule:
+    metrics-name: service_instance_sla
+    include-names:
+      - zmn-oms-admin of zmn-oms::zmn-oms-admin
+      - zmn-oms-dubbo of zmn-oms::zmn-oms-dubbo
+    op: "<"
+    threshold: 9800
+    period: 10
+    count: 2
+    silence-period: 30
+    only-as-condition: true
   service_instance_resp_time_rule:
     metrics-name: service_instance_resp_time
     exclude-names:
@@ -84,6 +95,9 @@ composite-rules:
   instance_cpm_sla_comp_rule:
     expression: service_instance_cpm_condition_rule && service_instance_sla_condition_rule
     message: "{name} 在过去 10 分钟内有 2 分钟的平均请求数高于 50 且请求响应成功率低于 60%"
+  instance_pivotal_cpm_sla_comp_rule:
+    expression: service_instance_cpm_condition_rule && service_instance_pivotal_sla_condition_rule
+    message: "{name} 在过去 10 分钟内有 2 分钟的平均请求数高于 50 且请求响应成功率低于 98%"
 
 dingtalkHooks:
   textTemplate: |-
