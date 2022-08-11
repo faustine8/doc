@@ -83,9 +83,9 @@ rules:
     op: ">"
     threshold: 90
     period: 3
-    count: 1
+    count: 2
     silence-period: 5
-    message: "{name} 在过去 3 分钟内有 1 分钟的平均 CPU 使用率超过 90%"
+    message: "{name} 在过去 3 分钟内有 2 分钟的平均 CPU 使用率超过 90%"
 
 composite-rules:
   instance_cpm_sla_comp_rule:
