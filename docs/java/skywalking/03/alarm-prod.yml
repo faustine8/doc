@@ -73,7 +73,7 @@ rules:
   instance_jvm_old_gc_count_rule:
     metrics-name: instance_jvm_old_gc_count
     op: ">"
-    threshold: 5
+    threshold: 10
     period: 2
     count: 1
     silence-period: 5
