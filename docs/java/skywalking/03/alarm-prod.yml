@@ -92,7 +92,7 @@ rules:
     period: 2
     count: 1
     silence-period: 5
-    message: "{name} 的 JVM 在过去 1 分钟的老年代 GC 次数超过 5 次"
+    message: "{name} 的 JVM 在过去 1 分钟的老年代 GC 次数超过 10 次"
   instance_jvm_cpu_rule:
     metrics-name: instance_jvm_cpu
     op: ">"
