@@ -293,6 +293,60 @@ synthetic Constructor 就是为了解决内部类的构造方法私有，但是�
 
 总结：Synthetic 所做的事情，就是帮我们写了类似 JS 中的 `var that = this` 这个操作。
 
+前面所讲的，适用于 JDK8。在 JDK 11 以后，引入了新的内部类访问控制 NBAC。
+
+## NBAC
+
+> Nested Based Access Control, 基于嵌套类的访问控制。
+
+来看一个例子：
+
+```java
+public class Outer {
+
+    public void outPublic() throws Exception {
+        new Inner().innerPublic(); // 正常执行
+        new Inner().reflectOuter(new Outer()); // 异常：can not access a member of class Outer with modifiers "private"
+    }
+
+    private void outPrivate() {
+
+    }
+
+    class Inner {
+
+        public void innerPublic() {
+            outPrivate(); // 内部类调用外部的方法，可以正常调用。synthetic 的方式桥接访问外部类的 private 方法
+        }
+
+        public void reflectOuter(Outer outer) throws Exception {
+            Method method = outer.getClass().getDeclaredMethod("outPrivate");
+            method.invoke(outer);
+        }
+
+    }
+
+}
+
+public class Main {
+
+    public static void main(String[] args) throws Exception {
+        new Outer().outPublic();
+    }
+
+}
+```
+
+在内部类里面同一个方法，不同的调用方式，结果不一样。
+
+如果调用外部类的 `private` 方法：
+
+1. 直接调用 => 不报错
+2. 反射调用 => 报错
+
+
+
+
 
 
 
