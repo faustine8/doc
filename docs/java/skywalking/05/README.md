@@ -285,6 +285,15 @@ span.setPeer("ip：port");
 4) 当所有 Span 的 `AsyncSpan#prepareForAsync` 完成后, 追踪上下文会结束, 并一起被回传到后端服务（根据API执行次数判断）。
 
 
+## LTS 插件开发
+
+LTS GitHub 地址 <https://github.com/ltsopensource/light-task-scheduler>
+
+已知 LTS 整体执行流程，问题：
+
+1. LTS 任务执行(TaskTracker)的执行流程, 源代码分析。 (为了找出需要 SkyWalking 写增强的切入点，按照目前的理解可以直接增强 业务代码上的任务执行方法)
+2. LTS 支持 Quartz，可不可以直接使用 quartz 的插件 (他增强的是 org.quartz.core.JobRunShell 类的 run 方法)？ 答：没有使用到
+3. LTS 监控要实现的效果是什么？  答：主要是在任务执行时开启链路端点
 
 
 

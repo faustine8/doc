@@ -129,28 +129,169 @@ next: /java/skywalking/05/
 ##### 2.PluginFinder 分类插件(根据ClassMatch)
 
 - 命名匹配插件 (`NameMatch`)
-- 间接匹配插件 (`NameMatch`)
+- 间接匹配插件 (`IndirectMatch`)
 - JDK 类库插件
 
 ### 3. 定制化 Agent
 
 - 创建 ByteBuddy 实例
 - 指定 ByteBuddy 要忽略的类
+- 将必要的类注入到 Bootstrap ClassLoader 中
 
+> 为什么要将一些类注入到 Bootstrap ClassLoader 中呢？因为我们需要对一些类进行字节码增强，而增强相关的逻辑类，是由 AgentClassLoader 加载的；
+> 如果我们需要对一个由 Bootstrap 加载的类进行增强怎么办呢？由于「双亲委派」机制的影响，父级类加载器不能访问子级类加载器中的内容；
+> 所以为了实现目的，我们可以将必要的类注入到 Bootstrap ClassLoader 中。
 
-## LTS 插件开发
+- 绕开 JDK9 模块系统的跨模块类访问
+- 根据配置决定，是否将修改后的字节码文件保存一份到磁盘或内存中
+- 细节定制: 1.指定 bytebuddy 要拦截的类; 2.指定做字节码增强的工具; 3.指定字节码增强的模式; 4.注册监听器; 5.将 Agent 安装到 Instrumentation(是和整个 JVM 黑盒世界打交道的句柄)
 
-LTS GitHub 地址 <https://github.com/ltsopensource/light-task-scheduler>
+> 扩展： 字节码增强的模式
+> 
+> `REDEFINITION` 同名方法，重新定义 (类似重写)
+> 
+> `RETRANSFORMATION` 创建一个同名方法，然后将原方法改个名字。(这样就既保留了原来的方法的内容，又事实上替换了原来的方法)
+> 
+> 他们的区别就在于：是否保留变更前的内容 
 
-已知 LTS 整体执行流程，问题：
+## synthetic 关键字
 
-1. LTS 任务执行(TaskTracker)的执行流程, 源代码分析。 (为了找出需要 SkyWalking 写增强的切入点，按照目前的理解可以直接增强 业务代码上的任务执行方法)
-2. LTS 支持 Quartz，可不可以直接使用 quartz 的插件 (他增强的是 org.quartz.core.JobRunShell 类的 run 方法)？ 答：没有使用到
-3. LTS 监控要实现的效果是什么？  答：主要是在任务执行时开启链路端点
+JLS：所有存在于字节码文件中，但是不存在于源代码文件中的「构造」，都应该被 synthetic 关键字标注。
 
+> 构造：Constructs, 可以指代 Java 类中的 Field, Method, Constructor
 
+因此，可以理解 synthetic 为：由 Java 编译器在编译阶段自动生成的「构造」。
 
+### Field
 
+```java
+public class FieldDemo {
+    
+    public String hello() {
+        return "hello";
+    }
+    
+    class FieldDemoInner {
+        
+        FieldDemo(FieldDemo var1) {
+            this.this$0 = var1;
+        }
+        
+        public void sayHello() {
+            System.out.println(hello());
+            // 其实字节码文件中如下所示
+            System.out.println(this.this$0.hello());
+        }
+        
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        fieldDemo(); // this$0  true // 
+    }
+    
+    public static void fieldDemo() {
+        Field[] fields = FieldDemo.FieldDemoInner.class.getDeclaredFields();
+        for (Field field: fields) {
+            System.out.println(field.getName() + " " + field.isSynthetic());
+        }
+    }
+}
+```
+
+JVM 在编译阶段会在内部类中添加一个属性 `this$0` 指向外部类。为什么要这样做呢？
+
+在 Java 中，一个类要调用另外一个类的方法，需要持有另外一个类的实例。内部类与外部类本质上还是不同的类，而内部类又要调用外部类的属性和方法，
+所以内部类应该要持有外部类的实例，所以 JVM 在编译阶段自动在内部类中添加了 `this$0` 指向了外部类。
+
+### Method
+
+```java
+public class MethodDemo {
+
+    public class MethodDemoInner {
+
+        // private MethodDemo this$0;
+        private String innerName;
+
+        // public void access$000(String name) {
+        //     this.innerName = name;
+        // }
+
+        // public String access$002() {
+        //     return this.innerName;
+        // }
+
+    }
+
+    public void setInnerName(String name) {
+        new MethodDemoInner().innerName = name;
+        // 实际上编译器修改为如下：
+        // new MethodDemoInner().access$000(string);
+    }
+
+    public String getInnerName() {
+        return new MethodDemoInner().innerName;
+        // 实际上编译器修改为如下：
+        // return new MethodDemoInner().access$002();
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        methodDemo(); // access$002  true \n access$000  true
+    }
+
+    public static void methodDemo() {
+        Method[] methods = MethodDemo.MethodDemoInner.class.getDeclaredMethods();
+        for (Method method: methods) {
+            System.out.println(method.getName() + " " + method.isSynthetic());
+        }
+    }
+}
+```
+
+因为不论是否是内部类，都不能访问类内部的私有成员变量。为了满足编译器的语法规范，对源代码做了如此的修改。
+
+### Constructor
+
+```java
+public class ConstructorDemo {
+
+    // 构造器私有了，就不能 new 了。但是这里居然不报错？
+    private ConstructorDemoInner inner = new ConstructorDemoInner();
+
+    public class ConstructorDemoInner {
+        private ConstructorDemoInner() {
+
+        }
+    }
+
+}
+
+public class Main {
+    public static void main(String[] args) {
+        constructorDemo(); 
+        // org.example.ConstructorDemo$ConstructorDemoInner false 2 private
+        // org.example.ConstructorDemo$ConstructorDemoInner true 4096
+    }
+
+    public static void constructorDemo() {
+        Constructor<?>[] constructors = ConstructorDemo.ConstructorDemoInner.class.getDeclaredConstructors();
+        for (Constructor<?> constructor: constructors) {
+            System.out.println(constructor.getName() + " " + constructor.isSynthetic());
+            // modifier = 4096 => synthetic
+            System.out.println(constructor.getModifiers());
+            System.out.println(Modifier.toString(constructor.getModifiers()));
+        }
+    }
+}
+```
+
+synthetic Constructor 就是为了解决内部类的构造方法私有，但是在外部类中调用他的构造方法。编译器会自动生成一个新的 synthetic 的构造方法。
+
+总结：Synthetic 所做的事情，就是帮我们写了类似 JS 中的 `var that = this` 这个操作。
 
 
 
