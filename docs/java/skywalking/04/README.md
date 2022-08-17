@@ -344,8 +344,39 @@ public class Main {
 1. 直接调用 => 不报错
 2. 反射调用 => 报错
 
+这存在二义性，于是在 JDK11 中引入了 NBAC 来消除这个二义性。
 
+那么它是如何实现的呢？
 
+通过查看 JDK 源码，发现 `Class` 类中有一个 `native` 的方法 `getNestHost0`.
+
+NBAC 到底是个什么东西呢？
+
+`Outer` 类里面有个 `Inner` 类。
+
+- `Inner => NestHost = Outer.class`
+- `Outer => NestMembers = [Inner.class]` members 里面就有 Inner.class
+
+JVM 就是通过这两个方法(`getNestHost(), getNestMembers()`)来验证两个类的嵌套关系.
+
+- Inner 的嵌套宿主：Outer
+- Outer 的嵌套宿主：Outer
+- Outer 的嵌套成员：Outer, Inner
+- Inner 的嵌套成员：Outer, Inner
+
+所以在 NBAC 的机制下，无论是从嵌套类去读取 NestMembers 还是从主类去读 NestMembers，他们获取的列表都是一样的。
+这样设计可以快速的验证嵌套关系。(NestMembers 其实可以理解为「共同组成了嵌套关系」的成员，组成这个关系的成员中既有外部类、也有内部类)
+
+事实上，如果按照上述的理解的话，Inner 和 Outer 更像是伙伴(Mate)关系，而不是主从关系。
+因此有一个判断两个类是否是伙伴(Mate)关系的方法：`Outer.Inner.class.isNestmateOf(Outer.class);`, 结果是 `true`
+
+## 服务加载
+
+SkyWalking 服务组织形式：
+
+在一个服务的默认实现上使用 `@DefaultImplementor` 注解，然后在覆盖的实现上使用 `@OverrideImplementor(SamplingService.class)` 注解，value 指向默认实现。
+
+> 覆盖默认服务的服务，一般都会继承默认服务，为什么不直接通过 `getSuperclass()` 获取呢？主要是没有通过注解的 value 传值来的方便。
 
 
 

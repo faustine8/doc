@@ -20,7 +20,15 @@ next: /java/skywalking/01
 
 [(未定稿)SkyWalking - 源码 - javaagent](/doc/java/skywalking/03/)
 
-
+```shell
+java -javaagent:/opt/zmn/software/skywalking-agent/skywalking-agent.jar \
+-Dskywalking.agent.service_name=zmn-owl::zmn-owl-task \
+-Dskywalking.collector.backend_service=192.168.99.23:11800 \
+-Dskywalking.agent.instance_name=zmn-owl-task@192.168.97.59 \
+-Dskywalking.agent.is_open_debugging_class=true \
+-Dzmn.logging.file.dir=/Users/faustine/Code/logs/owl/owl-task \
+-jar zmn-owl-task.jar
+```
 
 
 
