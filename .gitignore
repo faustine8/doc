@@ -13,3 +13,6 @@ software
 
 # Drawio
 *.bkp
+
+# macOS
+.DS_Store

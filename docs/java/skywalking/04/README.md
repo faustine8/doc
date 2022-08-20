@@ -418,6 +418,63 @@ SkyWalking 采用 witnessClass 和 witnessMethods 实现版本识别。
 3. 字节码增强流程
 4. 将记录状态的上下文 `EnhanceContext` 设置为「已增强」
 
+### 字节码增强流程
+
+1. 对静态方法
+2. 对构造器和实例方法增强
+
+#### 静态方法
+
+1. 要修改原方法入参
+   - JDK 核心类库的类
+   - 不是 JDK 核心类库的类
+2. 不修改原方法入参
+    - JDK 核心类库的类
+    - 不是 JDK 核心类库的类
+   
+四个具体的分支，总体流程都是类似的：
+
+1. 实例化插件中定义的 Interceptor
+2. 调用 beforeMethod() 方法
+3. 调用原方法；如果发生异常调用 `handleMethodException()` 方法
+4. 调用 afterMethod() 方法
+
+> 其中，调用原方法时，如果要修改原方法的入参，则调用自定义的 OverrideCallable.call(args); 传入在 beforeMethod 阶段修改后的参数；
+> 如果不修改原方法的入参，则调用原生的 Callable.call(); 方法。
+
+思考：为什么在调用原方法时不使用 `method.invoke(clazz.newInstance())` 而非要使用一个 `Callable` 的引用呢？
+
+#### 构造器和实例方法
+
+构造器和实例方法的流程和 静态方法增强类似，只不过构建 `xxInterXx` 的时候参数多了一个类加载器，因为判断两个实例对象相等时，
+首先要是同一个类加载器加载的，其次是同一份字节码。
+
+构造器的增强方法 `onConstruct()` 方法的执行时机是在「原生的构造函数执行之后」执行
+
+### load 方法详解
+
+> 问题：在调用 org.apache.skywalking.apm.agent.core.plugin.loader.InterceptorInstanceLoader#load 时，如果是「实例方法」会传入一个 classLoader,
+> 初始的调用位置是 transform() 方法，传入的 ClassLoader 是加载要增强的那个类的类加载器；如果是「静态方法」，调用 load 方法时是直接使用的 `@Origin` 的 class 的
+> 类加载器，这个 `@Origin` 的 class 是要增强的那个类的「原生类」，他们的区别是什么？
+> 是为了以防要增强的「实例方法」被增强过，被别的类加载器加载过吗？确保「实力方法」即使此时获取到的不是原生的类对象，也是无所谓吗？
+
+思考：既然 AgentClassLoader 可以加载所有的插件里面的内容，为什么每次新的 interceptor 来的时候都要创建单独的 AgentClassLoader 呢？
+
+要理解这个，需要首先具备类加载器的委派机制。我们先回顾一下「双亲委派」。BootstrapClassLoader - ExtClassLoader - AppClassLoader, 
+AppClassLoader 加载类的时候会往上找，刚好两层，所以叫「双亲委派」。
+
+事实上，这个链条还可以继续往下延伸 AppClassLoader - CustomClassLoaderA - CustomClassLoaderB - CustomClassLoaderC ..., 这样往上找就不止两层了，就不能叫「双亲」委派了。
+因此，「双亲委派」是标准类加载器的范围内的概念；在更广域的范围内，就叫 类加载器的委派机制。
+
+现在再回到代码中，在这个 load 方法中加载的是 interceptor, 而在 interceptor 中要做的操作就是要去改「拦截点」的字节码，在他当中调用 interceptor 中定义的方法，但是 AgentClassLoader 加载不到业务类(拦截点所在的类)的字节码，
+所以可以使用类加载器的委派机制，让 AgentClassLoader 继承加载业务类的类加载器，这样就能在加载 interceptor 的类加载器中也能获取到拦截点的字节码了。
+
+
+
+
+
+
+
 
 
 
