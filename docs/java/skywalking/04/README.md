@@ -469,7 +469,13 @@ AppClassLoader 加载类的时候会往上找，刚好两层，所以叫「双�
 现在再回到代码中，在这个 load 方法中加载的是 interceptor, 而在 interceptor 中要做的操作就是要去改「拦截点」的字节码，在他当中调用 interceptor 中定义的方法，但是 AgentClassLoader 加载不到业务类(拦截点所在的类)的字节码，
 所以可以使用类加载器的委派机制，让 AgentClassLoader 继承加载业务类的类加载器，这样就能在加载 interceptor 的类加载器中也能获取到拦截点的字节码了。
 
+### 遗留问题
 
+在 `org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.InstMethodsInter#intercept` 方法中，
+既然已经有了 method 也有 this 为什么不使用 `method.invoke()` 方法，而使用 `zuper.call()` 呢？
+
+通过观察增强后的字节码可以发现，`intercept()` 方法中，传入的 method 参数 cachedValue$xxx 指向的是当前被增强的方法；而在被增强后的方法中实际调用的也是 XxxInter 的 intercept 方法；
+所以如果在 intercept 方法中使用 `method.invoke()` 会导致递归调用，形成死循环。
 
 
 
