@@ -66,3 +66,12 @@ This is a problem related to network connectivity.
 ```
 
 运行 `npm config set proxy null` 
+
+安装 yeoman
+
+```shell
+sudo npm install -g yo
+# 安装 generator
+sudo npm install -g generator-webapp
+
+```
