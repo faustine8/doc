@@ -451,6 +451,17 @@ SkyWalking 采用 witnessClass 和 witnessMethods 实现版本识别。
 
 构造器的增强方法 `onConstruct()` 方法的执行时机是在「原生的构造函数执行之后」执行
 
+#### JDK 类库的类的增强
+
+大致逻辑和流程与前面的类似, 只不过因为加载 核心类库的类 使用的是 BoostrapClassLoader, 所以需要想办法将需要用到的类注入到 BoostrapClassLoader, 
+比如: 增强逻辑 interceptor (InstanceMethodInterTemplate), logger(IBootstrapLog) 
+
+- 前置工作: 使用对应的 Template 生成实际使用的拦截逻辑, 即: `Xxx_internal` 
+
+- 调用 `prepare()` 方法: 1, 打通 BootstrapClassLoader 和 AgentClassLoader (目的是拿到日志对象 ILog); 2, 实例化插件定义的拦截器 (替代非 JDK 核心类库里面的 `InterceptorInstanceLoader.load(instanceMethodsAroundInterceptorClassName, classLoader);`).
+
+- 后续流程和非 JDK 核心类库的流程一致.
+
 ### load 方法详解
 
 > 问题：在调用 org.apache.skywalking.apm.agent.core.plugin.loader.InterceptorInstanceLoader#load 时，如果是「实例方法」会传入一个 classLoader,
@@ -476,6 +487,8 @@ AppClassLoader 加载类的时候会往上找，刚好两层，所以叫「双�
 
 通过观察增强后的字节码可以发现，`intercept()` 方法中，传入的 method 参数 cachedValue$xxx 指向的是当前被增强的方法；而在被增强后的方法中实际调用的也是 XxxInter 的 intercept 方法；
 所以如果在 intercept 方法中使用 `method.invoke()` 会导致递归调用，形成死循环。
+
+## 服务 BootService
 
 
 
