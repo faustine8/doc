@@ -173,6 +173,128 @@ stylelint path/filename.css
 stylelint **/*.css
 ```
 
+## Gulp
+
+Gulp 与 npm scripts
+
+- Gulp 与 npm scripts 都能够实现自动化构建
+- Gulp 语法简单
+  - Gulp 语法就是 JavaScript 语法
+  - npm scripts 语法接近 shell 脚本
+- Gulp 生态完善，构建效率高
+
+### Gulp 基本使用
+
+```shell
+# 全局安装 gulp 客户端
+npm install -g gulp- cli
+# 初始化项目
+npm init --yes
+# 安装 gulp 包
+npm install gulp -D
+# 新建 gulpfile 文件 
+gulpfile.js
+# 在 gulpfile.js 中，创建 gulp 任务
+# 执行 gulp 任务
+gulp <task-name>
+```
+
+### Gulp 组合任务
+
+- 并行执行: `gulp.parallel(task1, task2, task3)`
+- 串行执行: `gulp.series(task1, task2, task3)`
+
+Gulp 构建组合任务
+
+`gulp.series( 任务1, gulp.parallel( 任务2, 任务3 ), 任务4 )`
+
+### Gulp 文件操作
+
+Gulp 是基于 流 的构建系统
+
+### Gulp 构建样式文件
+
+源代码 => 转换/压缩/重命名 => 目标代码
+
+Gulp 构建样式文件所需插件:
+
+```shell
+# 将 less 文件，转成 css 文件
+npm i gulp-less -D
+# 压缩 CSS 代码
+npm i gulp-clean-css -D
+# 对文件进行重命名
+npm i gulp-rename -D
+```
+
+#### CSS hack 与 Autoprefixer 保证 CSS 的兼容性
+
+CSS hack
+
+- CSS 代码存在兼容性问题
+  - 同一段 CSS 代码，在不同浏览器上的呈现效果不同。
+- 针对不同的浏览器写相应的 CSS 代码
+  - 我们把针对不同的浏览器写相应的 CSS 代码的过程，叫做 CSS hack!
+
+> CSS hack 的目的: 就是使你的 CSS 代码兼容不同的浏览器!
+
+- Autoprefixer 插件给 CSS 属性(user-select)，添加浏览器特有的前缀
+- Autoprefixer 使用 `caniuse.com` 的数据 来决定哪些属性需要加前缀
+
+### Gulp 构建脚本文件
+
+源代码 => 编译/压缩/重命名 => 目标代码
+
+#### Gulp 构建脚本文件所需插件
+
+- gulp-babel      => 将 ES6+ 新语法转成 ES5
+- gulp-uglify     => 压缩 JS 代码
+- gulp-rename     => 对文件进行重命名
+
+### Gulp 构建页面(HTML)文件
+
+Gulp 构建 HTML 文件所需插件
+
+gulp-htmlmin => 压缩 HTML 文件
+
+### Gulp 构建任务组合
+
+#### Gulp 构建资源(图片)文件
+
+Gulp 图片文件所需插件
+
+gulp-imagemin => 压缩图片文件
+
+### Gulp 文件清除
+
+Gulp 清除文件所需插件
+
+del 删除文件和目录
+
+### Gulp 开发服务器
+
+开发服务器构建插件
+
+browser-sync 发布 web 服务
+
+#### Gulp 使用 Bootstrap
+
+Gulp 中安装 Bootstrap
+
+- bootstrap 提供常用的页面效果
+- jquery Bootstrap 的依赖包
+
+#### Gulp 开发服务器中监视文件变化
+
+### Gulp 在 Yeoman 中的应用
+
+以 Webapp 生成器为例
+
+
+
+
+
+
 
 
 
