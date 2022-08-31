@@ -490,6 +490,17 @@ AppClassLoader 加载类的时候会往上找，刚好两层，所以叫「双�
 
 ## 服务 BootService
 
+### GRPCChannelManager 
+
+Agent 到 OAP 的网络连接
+
+- 定时重连
+- 通知监听器网络链接状态的变化
+
+### ServiceManagementClient
+
+- 向 OAP 汇报自身的信息
+- 保持心跳
 
 
 
