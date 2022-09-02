@@ -502,12 +502,49 @@ Agent 到 OAP 的网络连接
 - 向 OAP 汇报自身的信息
 - 保持心跳
 
+### CommandService
+
+#### ConfigurationDiscoveryService 执行流程
+
+首先, 实现了 `GRPCChannelListener` 接口, 在 `prepare` 阶段将自身注册为 GRPC 网络连接的监听器;
+
+然后在 `boot` 阶段创建一个单线程的调度器调度 `getAgentDynamicConfig` 方法; 在这个方法中从 服务端 获取命令, 然后交给 `CommandService.receiveCommand()`;
+
+在 `receiveCommand` 方法中将命令放入队列中; 与此同时 `CommandService.run()` 方法不断从队列中拿出命令执行;
+
+在调用 `ConfigurationDiscoveryCommandExecutor` 这个执行器执行命令的时候, 会调用 `ConfigurationDiscoveryService.handleConfigurationDiscoveryCommand()` 方法真正执行命令.
 
 
-
-
-
-
+```text
+-Dfile.encoding=utf-8",
+"-Dloader.path=/a/apps/skywalking-agent/plugins/loglib/",
+"-Dons.client.logLevel=ERROR",
+"-Dons.client.logRoot=/a/logs/ons-client",
+"-Dskywalking.agent.instance_name=zmn-oms-dubbo@172.17.3.238",
+"-Dskywalking.agent.service_name=zmn-oms::zmn-oms-dubbo",
+"-Dskywalking.collector.backend_service=172.17.32.109:11800",
+"-Dskywalking.logging.dir=/a/logs/oms/oms-dubbo",
+"-Dskywalking.logging.file_name=zmn-oms-dubbo-sw-agent.log",
+"-Dskywalking.logging.max_file_size=104857600",
+"-Dskywalking.logging.max_history_files=2",
+"-Dskywalking.plugin.exclude_plugins=okhttp-2.x,okhttp-3.x,okhttp-4.x",
+"-Dskywalking.plugin.jdbc.trace_sql_parameters=true",
+"-Dspring.profiles.active=prod",
+"-Duser.timezone=Asia/Shanghai",
+"-DworkerId=238",
+"-Dzmn.apm.logback.level=error",
+"-XX:+HeapDumpOnOutOfMemoryError"
+"-XX:+UseCMSInitiatingOccupancyOnly",
+"-XX:+UseConcMarkSweepGC",
+"-XX:CMSInitiatingOccupancyFraction=70",
+"-XX:MaxMetaspaceSize=512m",
+"-XX:MetaspaceSize=512m",
+"-XX:SurvivorRatio=3",
+"-Xmn2g",
+"-Xms4g",
+"-Xmx4g",
+"-javaagent:/a/apps/skywalking-agent/skywalking-agent.jar
+```
 
 
 
