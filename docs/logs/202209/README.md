@@ -20,12 +20,44 @@
 2. 生产环境也已经添加了 `apm-spring-webflux-5.x-plugin-8.10.0.jar` 插件 (已确认)
 3. 现在的情况是 概览页面的指标数据 已经有了(之前概览页面空白); 但是链路上 url 和 dubbo 调用没有连接起来.
 
+将链路连起来的思路: 侵入式的, 直接在 Ratel 项目中的业务代码上添加链路追踪的注解.
+
+ratel 泛化调用 Dubbo 的流程: 
+
+`RatelHandlerMapping` 实现了 `AbstractHandlerMapping` 接口, 其中的 `getHandlerInternal()` 会被 webflux 调用, 获取所有的 Handler;
+
+`RatelHandler` 实现了 `WebHandler` 接口, 所以 `RatelHandler` 中的 `handle()` 方法是入口; 
+由 `handle()` 方法中的 `DefaultRatelFilterChain(globalFilters).filter(exchange);` 可知业务核心在 `DefaultRatelFilterChain.filter()` 方法中;
+
+在 `filter()` 方法中, 将所有的 `com.zmn.ratel.api.filter` 目录下的 `Filter` 组织起来.
+
+其中的 `ProcessorDispatcherFilter` 最终返回了 `forwardProcessor.process(exchange, chain)` 调用; 
+`ForwardProcessor` 有一个实现 `com.zmn.ratel.api.process.DubboForwardProcessor#process`, 在这个方法中对参数进行一系列校验, 然后进行 Dubbo 的泛化调用.
+
+---
+
+通过查看测试环境的 SkyWalking 的 Ratel 的链路, 发现 webflux span 节点的 "跨度类型" 是 Entry. Entry 代表的已经是 LocalThread 了, 感觉很难能够连起来了.
+
+而且有一些 Dubbo 调用的 span 节点的 "跨度类型" 是 Exit, 这个是 "生产者" 的类型, 后面没有 Dubbo 接口的调用详情, 如: `com.zmn.mcc.dubbo.interfaces.permit.PermitListRemoteService.$invoke(String,String[],Object[])`; 
+有一些 Dubbo 调用的 span 节点的 "跨度类型" 是 Entry, 这些就有 Dubbo 接口的调用详情, 如: `com.zmn.biz.ocs.dubbo.interfaces.session.ChatSessionExtListRemoteService.findBySessionId`
+
+经确认, 两个都是 泛化调用 的, 但是为什么呈现出来的结果却不一样呢?
+
 ### 待办事项
 
 测试环境:
 
 1. 启动参数没有指定 sw 日志目录: `-Dskywalking.logging.dir=/a/logs/oms/oms-dubbo`
 2. 添加限制 span 数量的参数, 以 oms-dubbo 为例. `-Dskywalking.agent.span_limit_per_segment=100`
+
+(已更改, 等待 oms-dubbo 重启以观后效)
+
+测试环境发现没用, 还是报错: 
+
+```text
+WARN 2022-09-02 18:31:21:394 DubboServerHandler-10.10.15.104:20880-thread-197 TracingContext : More than 100 spans required to create 
+java.lang.RuntimeException: Shadow tracing context. Thread dump
+```
 
 生产环境:
 
