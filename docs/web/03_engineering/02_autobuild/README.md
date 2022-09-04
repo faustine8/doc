@@ -62,6 +62,52 @@ npm scripts 实现自动化构建的最简方式
 
 npm 允许在 package.json 文件中，使用 scripts 字段定义脚本
 
+#### npm scripts 自定义脚本命令
+
+1. 声明命令 (package.json)
+
+```json
+{
+  "scripts": {
+    "foo": "node bar.js"
+  }
+}
+```
+
+2. 执行命令 (命令行)
+
+```shell
+npm run foo
+# 等同于
+node bar.js
+```
+
+##### 自动化构建样式文件
+
+手动: 
+
+```shell
+lessc input.less output.css
+```
+
+自动:
+
+在 package.json 中定义构建任务
+
+```json
+{
+  "scripts": {
+    "style": "lessc input.less output.css"
+  }
+}
+```
+
+命令行中执行命令
+
+```shell
+npm run style
+```
+
 #### npm scripts 中任务的执行方式
 
 并行 / 串行
@@ -69,9 +115,11 @@ npm 允许在 package.json 文件中，使用 scripts 字段定义脚本
 - 并行执行(parallel): `任务1 & 任务2` 任务之间没有先后顺序，同时执行可以提高执行效率
 - 串行执行(series): `任务1 && 任务2` 任务之间有先后顺序，先执行前一个任务，后执行下一个
 
-> & (并行执行)在 Windows 下不起作用
+> `&` (并行执行)在 Windows 下不起作用
 
 #### npm-run-all 插件
+
+> 用于解决 Windows 下不支持平行执行问题的插件
 
 ```shell
 # 在项目中安装
@@ -91,15 +139,20 @@ run-s script1 script2 script3
 ### 构建样式文件实战
 
 ```shell
-# === 将 less 转成 css ===
+# 运行项目时, 需要一个 serve 插件
+sudo npm i serve -g
+```
+
+```shell
+# === 1. 将 less 转成 css ===
 # 安装 less
-npm i less -g
+sudo npm i less -g
 # 转换
 lessc input.less output.css
 
-# === 压缩 css 文件 ===
+# === 2. 压缩 css 文件 ===
 # 安装 minify 压缩插件
-npm i minify -g
+sudo npm i minify -g
 # 压缩
 minify output.css > output.min.css
 ```
@@ -118,13 +171,29 @@ minify output.css > output.min.css
 
 Babel 插件可以将 ES6+ 新语法转成 ES5
 
+Babel 转换规则: `babel-preset-es2018` 只能将 ES2018 转换成 ES2017, 以此类推; `babel-preset-env` 包含了 ES5+ 的所有的转换规则.
+
+Babel 转换命令:
+
+```shell
+# 单个文件
+babel input.js --out-file output.js 
+# 或:
+babel input.js -o output.js
+
+# 整个目录
+babel src --out-dir dist
+# 或:
+babel src -d dist
+```
+
 ```shell
 # 初始化项目
 npm init --yes
 # 安装 Babel
-npm install -g babel-core babel-cli
+sudo npm install -g babel-core babel-cli
 # 安装转码规则
-npm install -D babel-preset-env 
+npm install -D babel-preset-env
 # 配置转换规则
 .babelrc
 # 在 npm scripts 中添加转换命令
