@@ -209,7 +209,7 @@ babel src -d dist
 # 初始化项目
 npm init --yes
 # 安装 ESLint
-npm i eslint -g
+sudo npm i eslint -g
 #初始化配置文件 
 eslint --init
 
@@ -229,9 +229,9 @@ StyleLint
 # 初始化项目
 npm init --yes
 # 安装 StyleLint
-npm i stylelint -g 
+sudo npm i stylelint -g
 # 安装检测标准
-npm i stylelint-config-standard -g
+sudo npm i stylelint-config-standard -g
 # 创建配置文件
 .stylelintrc.json
 
@@ -244,7 +244,7 @@ stylelint **/*.css
 
 ## Gulp
 
-Gulp 与 npm scripts
+### Gulp 与 npm scripts
 
 - Gulp 与 npm scripts 都能够实现自动化构建
 - Gulp 语法简单
@@ -256,17 +256,26 @@ Gulp 与 npm scripts
 
 ```shell
 # 全局安装 gulp 客户端
-npm install -g gulp- cli
+sudo npm i -g gulp-cli
 # 初始化项目
 npm init --yes
-# 安装 gulp 包
-npm install gulp -D
+# 在项目中安装 gulp 包
+npm i gulp -D
 # 新建 gulpfile 文件 
 gulpfile.js
 # 在 gulpfile.js 中，创建 gulp 任务
 # 执行 gulp 任务
 gulp <task-name>
 ```
+
+报错:
+
+```shell
+[16:13:28] The following tasks did not complete: task1
+[16:13:28] Did you forget to signal async completion?
+```
+
+因为在新版的 gulp 中, 所有的任务都是异步执行的, 需要在声明的函数中写一个回调.
 
 ### Gulp 组合任务
 
@@ -277,9 +286,29 @@ Gulp 构建组合任务
 
 `gulp.series( 任务1, gulp.parallel( 任务2, 任务3 ), 任务4 )`
 
+先执行任务一, 然后并行执行任务二和任务三, 结束后再执行任务四
+
 ### Gulp 文件操作
 
-Gulp 是基于 流 的构建系统
+文件操作-缓冲方式: 源文件 -> 内存缓冲 -> 目标文件
+
+> 也就是文件操作时, 需要内存缓冲. 这种方式有一个明显的缺陷: 如果内存缓冲不够大, 可能导致操作失败.
+
+文件操作-流方式: 将文件切分成小的块, 然后给每个块编码; 发送的时候发送小块; 接收到后, 按照编码重新组合起来.
+
+#### Gulp 是基于"流"的构建系统
+
+> Gulp 的两个特点: 任务化, 基于流.
+
+输入(读取流) --> 加工(转换流) --> 输出(写入流)
+
+Gulp 文件操作函数
+
+`src()` --> `pipe()` --> `dest()`
+
+Gulp 的管道流
+
+源代码 --> 操作1/操作2/操作3 --> 目标代码
 
 ### Gulp 构建样式文件
 
@@ -307,8 +336,42 @@ CSS hack
 
 > CSS hack 的目的: 就是使你的 CSS 代码兼容不同的浏览器!
 
-- Autoprefixer 插件给 CSS 属性(user-select)，添加浏览器特有的前缀
+CSS hack – 属性前缀法
+
+例如: `user-select` 属性可以控制用户能否选中文本( 存在兼容性问题)
+
+兼容性写法:
+
+```css
+.code {
+  -webkit-user-select: none;    /* Safari 和 Chrome */
+  -moz-user-select: none;       /* Firefox */
+  -ms-user-select: none;        /* IE */
+  -o-user-select: none;         /* Opera */
+  user-select: none;
+}
+```
+
+- Autoprefixer 插件可以自动给 CSS 属性(`user-select`)，添加浏览器特有的前缀
 - Autoprefixer 使用 `caniuse.com` 的数据 来决定哪些属性需要加前缀
+
+```shell
+npm i gulp-autoprefixer -D
+```
+
+```js
+const style = () => {
+  // 流就是异步操作，所以不需要再写 callback
+  return src('src/styles/main.less', {base: 'src'})
+    .pipe(less()) // 转换成 css
+    .pipe(autoprefixer()) // 自动加前缀
+    .pipe(cleancss()) // css 压缩
+    .pipe(rename({
+      'extname': '.min.css'
+    }))
+    .pipe(dest('dist'))
+}
+```
 
 ### Gulp 构建脚本文件
 
@@ -320,13 +383,55 @@ CSS hack
 - gulp-uglify     => 压缩 JS 代码
 - gulp-rename     => 对文件进行重命名
 
+```shell
+# Babel 6
+npm install --save-dev gulp-babel@7 babel-core babel-preset-env
+
+npm i gulp-uglify -D
+```
+
+```js
+const script = () => {
+  return src('src/js/main.js')
+    .pipe(babel({
+      presets: ['babel-preset-env']
+    }))
+    .pipe(uglify())
+    .pipe(rename({
+      'extname': '.min.js'
+    }))
+    .pipe(dest('dist/scripts'))
+}
+```
+
 ### Gulp 构建页面(HTML)文件
 
 Gulp 构建 HTML 文件所需插件
 
 gulp-htmlmin => 压缩 HTML 文件
 
+```shell
+npm i gulp-htmlmin -D
+```
+
+```js
+const html = () => {
+  return src('src/index.html')
+    .pipe(htmlmin({ collapseWhitespace: true, minifyCSS: true, minifyJS: true}))
+    .pipe(dest('dist'))
+}
+```
+
 ### Gulp 构建任务组合
+
+```js
+// 组合任务
+const build = parallel(style, script, html)
+
+module.exports = {
+  build
+}
+```
 
 #### Gulp 构建资源(图片)文件
 
@@ -334,11 +439,21 @@ Gulp 图片文件所需插件
 
 gulp-imagemin => 压缩图片文件
 
+```shell
+npm i gulp-imagemin -D
+```
+
+> 注意版本号使用 ^7.1.0, 8.x 会有 import 问题: `Instead change the require of xxx  to a dynamic import() which is available in all CommonJS modules.`
+
 ### Gulp 文件清除
 
 Gulp 清除文件所需插件
 
-del 删除文件和目录
+`del` 删除文件和目录
+
+```shell
+npm i del -D
+```
 
 ### Gulp 开发服务器
 
