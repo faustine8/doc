@@ -126,16 +126,31 @@ export SW_ENABLE_UPDATE_UI_TEMPLATE=true
 
 # 配置中心
 export SW_CONFIGURATION=nacos
-export SW_CONFIG_NACOS_SERVER_ADDR=nacos
-export SW_CONFIG_NACOS_SERVER_NAMESPACE=nacos
+export SW_CONFIG_NACOS_SERVER_ADDR=http://local-nacos.xiujiadian.com
+export SW_CONFIG_NACOS_SERVER_NAMESPACE=e9fc0dda-5fce-42d2-94a0-b9fe516dbab3
 export SW_CONFIG_NACOS_USERNAME=nacos
 export SW_CONFIG_NACOS_PASSWORD=E4tNr26hGNY4
 ```
 
+> 自监控要保持 `SW_TELEMETRY_PROMETHEUS_PORT` 配置的值与 `${apm}/config/fetcher-prom-rules/self.yaml` 中的 `targets.url` 的端口保持一致.
+
+#### WebApp 启动参数
+
+`${apm}/webapp/webapp.yml`
+
+```yaml
+discovery:
+  client:
+    simple:
+      instances:
+        oap-service:
+          - uri: http://127.0.0.1:12801
+          - uri: http://127.0.0.1:12802
+```
 
 ### 源代码扩展
 
-#### 扩展 JVM 数据
+#### 扩展 JVM 数据 (未在生产环境使用)
 
 添加 JVM 指标的内存使用率指标, 源代码的调整主要在 `agent-analyzer` 模块.
 
@@ -156,6 +171,13 @@ serviceInstanceJVMMemory.setUsage(usage);
 private double usage;
 ```
 
+然后在 `${apm)/config/oal/java-agent.oal` 添加如下指标:
+
+```text
+instance_jvm_memory_heap_used_percent = from(ServiceInstanceJVMMemory.usage).filter(heapStatus == true).doubleAvg();
+instance_jvm_memory_noheap_used_percent = from(ServiceInstanceJVMMemory.usage).filter(heapStatus == false).doubleAvg();
+```
+
 #### 修复 Span 详情展示页面内容溢出
 
 web-app 模块, 官方在 9.2.0 版本已修复, 忽略.
@@ -163,6 +185,12 @@ web-app 模块, 官方在 9.2.0 版本已修复, 忽略.
 
 
 
+
+
+
+
+
+### 开发环境升级测试
 
 
 

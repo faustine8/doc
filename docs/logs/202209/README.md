@@ -70,6 +70,44 @@ java.lang.RuntimeException: Shadow tracing context. Thread dump
 2. 开发环境部署 SW 9.2
 3. 重新测试日志分析
 
+## 20220905
+
+1. SW_ENABLE_UPDATE_UI_TEMPLATE=false 能够导入模板?  
+2. 直接升级 OAP Server 和 WebApp 不修改 ui_template 索引页面会不会乱?  答: 不会, 只是新功能没有展示, 需要自己添加.
+
+```shell
+cd /opt/zmn/servers/
+
+./apm/bin/oapService.sh
+./apm2/bin/oapService.sh
+
+tail -fn 200 apm/logs/skywalking-oap-server.log
+tail -fn 200 apm2/logs/skywalking-oap-server.log
+
+./apm/bin/webappService.sh
+```
+
+```json
+{
+  "error": {
+    "root_cause": [
+      {
+        "type": "resource_already_exists_exception",
+        "reason": "index [sw_records-all-20220905/tBvz7zGXRFG-PoBvdnYwWw] already exists",
+        "index_uuid": "tBvz7zGXRFG-PoBvdnYwWw",
+        "index": "sw_records-all-20220905"
+      }
+    ],
+    "type": "resource_already_exists_exception",
+    "reason": "index [sw_records-all-20220905/tBvz7zGXRFG-PoBvdnYwWw] already exists",
+    "index_uuid": "tBvz7zGXRFG-PoBvdnYwWw",
+    "index": "sw_records-all-20220905"
+  },
+  "status": 400
+}
+```
+
+升级后, 除了菜单变化, 功能上和现实面板上, 无明显变化.
 
 
 

@@ -661,7 +661,7 @@ extractor {
 2022-07-20 00:06:48.544 [TID:51d7b6f78ba64a97998c413c32ad15a4.118.16582468083835363] [http-nio-19513-exec-5] INFO  ShardingSphere-SQL -SQLStatement: SelectStatement(super=DQLStatement(super=io.shardingsphere.core.parsing.parser.sql.dql.select.SelectStatement@1141c704), containStar=false, firstSelectItemStartPosition=18, selectListLastPosition=20, groupByLastPosition=0, items=[CommonSelectItem(expression=1, alias=Optional.absent())], groupByItems=[], orderByItems=[], limit=null, subQueryStatement=null, subQueryStatements=[], subQueryConditions=[])
 ```
 
-> 日志格式不正确，发现是 ramework-apm-boot-starter 模块格式有误。
+> 日志格式不正确，发现是 framework-apm-boot-starter 模块格式有误。
 
 TODO 修正日志格式。
 
