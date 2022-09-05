@@ -461,6 +461,31 @@ npm i del -D
 
 browser-sync 发布 web 服务
 
+> 官网地址: <https://browsersync.io/>
+
+```shell
+# 全局安装
+sudo npm install -g browser-sync
+# 开发安装
+npm i browser-sync -D
+```
+
+```js
+// 声明服务发布任务
+const serve = () => {
+  // 初始化服务
+  bs.init({
+    notify: false, // 禁用浏览器右上角的 browserSync 的提示框 (Browsersync: connected)
+    server: {
+      baseDir: './dist', // 指定服务启动的目录
+      routes: {
+        '/node_modules': 'node_modules' // 路由映射
+      }
+    }
+  })
+}
+```
+
 #### Gulp 使用 Bootstrap
 
 Gulp 中安装 Bootstrap
@@ -468,17 +493,42 @@ Gulp 中安装 Bootstrap
 - bootstrap 提供常用的页面效果
 - jquery Bootstrap 的依赖包
 
+```shell
+npm i bootstrap@3.4.1 jquery -S
+```
+
 #### Gulp 开发服务器中监视文件变化
+
+开发服务器监听文件变化:
+
+src --自动构建--> dist --服务发布--> 浏览器
+
+```js
+// 声明服务发布任务
+const serve = () => {
+  // watch(被监视的文件, 对应的任务)
+  watch('src/index.html', html)
+  watch('src/styles/*.less', style)
+  watch('src/js/*.js', script)
+  watch('src/images/**', image)
+  // 初始化服务
+  bs.init({
+    notify: false, // 禁用浏览器右上角的 browserSync 的提示框 (Browsersync: connected)
+    files: 'dist/**', // 监视 dist 目录下文件的变化，然后在浏览器上实时更新
+    server: {
+      baseDir: './dist', // 指定服务启动的目录
+      routes: {
+        '/node_modules': 'node_modules'
+      }
+    }
+  })
+}
+```
 
 ### Gulp 在 Yeoman 中的应用
 
 以 Webapp 生成器为例
 
+![Gulp](./assets/README-1662384678381.png)
 
-
-
-
-
-
-
-
+Gulp + npm scripts ==> 脚手架命令
