@@ -928,6 +928,146 @@ module.exports = {
 
 ### 打包 HTML
 
+#### ⽣成 HTML
+
+`html-webpack-plugin`，该插件⽤来创建 HTML ⽂件，创建的 HTML ⽂件默认引⼊打包后的所有资源⽂件
+
+> 复制 HTML 到打包⽬录、确保 HTML 中的路径正确（例如：HTML 标签中的 src ）
+> 
+>详情查看：<https://www.npmjs.com/package/html-webpack-plugin>
+
+安装
+
+```shell
+npm i html-webpack-plugin -D # webpack 5
+
+npm i html-webpack-plugin@4 -D # webpack 4
+```
+
+引⼊
+
+```js
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+```
+
+配置
+
+> 在 `webpack.config.js` 的 `plugins` 插件中添加 `HtmlWebpackPlugin`
+
+```js
+plugins: [
+  new HtmlWebpackPlugin() // 添加这⼀⾏
+]
+```
+
+执⾏命令
+
+```shell
+webpack
+```
+
+给 HTML 添加配置
+
+```js
+plugins: [
+  // ⽤于⽣成 index.html
+  new HtmlWebpackPlugin(),
+]
+```
+
+#### 设置 HTML 模板
+
+```js
+plugins: [
+  // ⽤于⽣成 index.html
+  new HtmlWebpackPlugin({
+    template: './src/index.html', // 指定 HTML 的模板
+  })
+]
+```
+
+声明模板
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="<%= htmlWebpackPlugin.options.viewport %>">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Demo</title>
+</head>
+<body>
+<div class="container">
+  <h1>Hello Webpack</h1>
+</div>
+</body>
+</html>
+```
+
+#### 设置 HTML 配置项
+
+- 少量配置可以在 `HtmlWebpackPlugin` 中指定
+- ⼤量配置建议指定 HTML ⽂件的模板
+
+```js
+plugins: [
+  // ⽤于⽣成 index.html
+  new HtmlWebpackPlugin({
+    template: './src/index.html', // 指定 HTML 的模板
+    title: 'Webpack Plugin Sample', // 添加 HTML 的 title
+    meta: { // 添加 HTML 的 mea
+      viewport: 'width=device-width, initial-scale=1.0'
+    }
+  }),
+  // ⽤于⽣成 about.html
+  new HtmlWebpackPlugin({
+    filename: 'about.html' // 指定声明的⽂件名,如果有多个模板，可以实例化多次
+  })
+]
+```
+
+声明 HTML 模板
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="<%= htmlWebpackPlugin.options.viewport %>">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title><%= htmlWebpackPlugin.options.title %></title>
+</head>
+<body>
+<div class="container">
+  <h1><%= htmlWebpackPlugin.options.title %></h1>
+</div>
+</body>
+</html>
+```
+
+#### 压缩 HTML
+
+除了创建模板⽂件外，htmlWebpackPlugin 还可以通过配置，实现压缩 HTML 的效果
+
+```js
+plugins: [
+  new CleanWebpackPlugin(),
+  new HtmlWebpackPlugin({
+    template: "./src/index.html",
+    title: "Webpack Demo666",
+    minify: {
+      removeRedundantAttributes: true, // 删除多余的属性
+      collapseWhitespace: true, // 折叠空⽩区域
+      removeAttributeQuotes: true, // 移除属性的引号
+      removeComments: true, // 移除注释
+      collapseBooleanAttributes: true // 省略只有 boolean 值的属性值 例如：readonly checked
+    }
+  }),
+]
+```
+
+> `minify` 选项可以配置压缩的内容
 
 ### 打包 JS
 
