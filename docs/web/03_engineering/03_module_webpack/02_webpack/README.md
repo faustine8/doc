@@ -238,6 +238,334 @@ module.exports = {
 
 ## 2. 基础
 
+### 2.1.打包 CSS
+
+#### 1. 打包逻辑
+
+非 JS 文件打包，需要对应的 loader
+
+- `css-loader` 将 CSS 转化为 JS(将 CSS 输出到打包后的 JS 文件中)
+- `style-loader` 把包含 CSS 内容的 JS 代码，挂载到页面的 `<style>` 标签当中
+
+步骤:
+
+1. 引入 CSS(`import "./css/main.css"`)
+2. 安装(`npm i css-loader style-loader -D`)
+3. 配置 (写在 `module` 中)
+    1. 匹配后缀名: `test: /\.css$/i`
+    2. 指定加载器: `use: ['style-loader', 'css-loader']` (注意先后顺序, 后写的先执行)
+
+```js
+module: {
+  rules: [
+    // 指定多个配置规则
+    {
+      test: /.css$/i,
+      // use 中 loader 的加载顺序: 先下后上
+      use: [
+        // 2.将 JS 中的样式挂载到 <style> 标签中
+        'style-loader',
+        // 1.按照 CommonJS 规范，将样式文件输出到 JS 中
+        'css-loader'
+      ]
+    }
+  ]
+}
+```
+
+---
+
+loader 的执行顺序
+
+```js
+use: ['style-loader', 'css-loader']
+```
+
+![loader执行顺序](./assets/README-1662967862244.png)
+
+__Loader 执行顺序:先右后左(先下后上).__
+
+> 先下后上, 指的是如果 loader 写了多行的情况.
+
+#### 2. 打包 LESS
+
+1.引入 less (`index.js` 文件中)
+
+```shell
+import "./css/main.less"
+```
+
+2.安装
+
+```shell
+npm i less less-loader -D
+```
+ 
+3.配置 (写在 `module` 中)
+
+- 匹配后缀名: `test: /\.less$/i`
+- 指定加载器: `use: ['style-loader', 'css-loader', 'less-loader']`
+
+---
+
+打包过程
+
+```js
+use: ['style-loader', 'css-loader', 'less-loader']
+```
+
+![打包 less 过程](./assets/README-1662969843261.png)
+
+---
+
+完整代码
+
+```js
+{
+  test: /.less$/i,
+  // use 中 loader 的加载顺序: 先下后上
+  use: [
+    // 3.将 JS 中的样式挂载到 <style> 标签中
+    'style-loader',
+    // 2.按照 CommonJS 规范，将样式文件输出到 JS 中
+    'css-loader',
+    // 1. 将 .less 转成普通的 css
+    'less-loader'
+  ]
+}
+```
+
+#### 3. 打包成独立的 CSS 文件
+
+安装插件
+
+```shell
+npm i mini-css-extract-plugin -D
+```
+
+引入插件(`webpack.config.js`)
+
+```js
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+```
+
+替换 `style-loader`
+
+```js
+use: [
+   // 2. 将 CSS 打包到独立的文件中
+   MiniCssExtractPlugin.loader,
+
+   // 1.按照 CommonJS 规范，将样式文件输出到 JS 中
+   'css-loader'
+]
+```
+
+- `style-loader`: 将 CSS 打包到 `<style>` 标签中
+- `MiniCssExtractPlugin.loader`: 将 CSS 打包到独立文件中
+
+配置插件
+
+```js
+// 插件配置
+plugins: [
+   new MiniCssExtractPlugin({
+      // 打包之后的文件名称
+      filename: 'css/[name].css' // 保持原文件名
+   })
+]
+```
+
+#### 4. 添加样式前缀
+
+安装
+
+```shell
+npm install postcss-loader autoprefixer -D
+```
+
+配置 `webpack.config.js`
+
+```js
+use: [
+   // 4. 将 CSS 打包到独立的文件中
+   MiniCssExtractPlugin.loader,
+   // 3.按照 CommonJS 规范，将样式文件输出到 JS 中
+   'css-loader',
+   // 2.通过 postcss-loader 给样式属性添加浏览器前缀
+   'postcss-loader',
+   // 1. 将 .less 转成普通的 css
+   'less-loader'
+]
+```
+
+(在项目根目录下)新建 `postcss.config.js`
+
+```js
+module.exports = {
+   'plugins': [
+      require('autoprefixer')
+   ]
+}
+```
+
+配置需要兼容的浏览器
+
+在 `package.json` 中指定 `browserslist`
+
+```json
+{
+   "browserslist": [
+      "last 1 version",
+      "> 1%"
+   ]
+}
+```
+
+> 详情参考: <https://www.npmjs.com/package/browserslist>
+
+---
+
+指定兼容规则, 有两种指定⽅式，⼆选⼀即可：
+
+1. 可以在 `package.json` 中指定（推荐）
+
+```json
+{
+  "browserslist": [
+    "last 1 version", // 匹配浏览器的最后的⼀个版本
+    "> 1%" // 代表浏览器的全球使⽤率超过 1%, 才做兼容
+  ]
+}
+```
+
+2. 在项⽬根⽬录下创建 `.browserslistrc`
+
+```shell
+# Browsers that we support
+
+last 1 version
+> 1%
+```
+
+#### 5. 格式校验
+
+安装
+
+```shell
+npm i stylelint stylelint-config-standard stylelint-webpack-plugin -D
+```
+
+引入
+
+```js
+const StylelintPlugin = require('stylelint-webpack-plugin');
+```
+
+配置插件(写在 `plugins` 中)
+
+```shell
+new StylelintPlugin({
+  // 指定需要进行格式校验的文件
+  files: ['src/css/*.{css,less,sass,scss}']
+})
+```
+
+指定校验规则
+
+(在 `package.json` 中指定 `stylelint` ) 
+
+```json
+{
+   "stylelint": {
+      "extends": "stylelint-config-standard",
+      // 后续为扩展配置（如果不需要⾃定义规则，可以忽略 rules）
+      "rules": {
+        
+      }
+   }
+}
+```
+
+---
+
+[stylelint](https://stylelint.io/)
+
+- 校验规则(如: number-leading-zero, 数字前缀 0 不能省略)
+
+```
+line-height: .5;  // 错误
+line-height: 0.5; // 正确
+```
+
+具体的规则集: [stylelint-config-standard](https://github.com/stylelint/stylelint-config-standard)
+
+允许在 webpack 中对 JS 代码进行格式校验的插件: [stylelint-webpack-plugin](https://webpack.docschina.org/plugins/stylelint-webpack-plugin)
+
+---
+
+指定规则配置有三种⽅式，按照加载的先后顺序，依次是：
+
+1. 在 `package.json` 中的 `stylelint` 属性指定规则
+2. 在(项目根目录) `.stylelintrc` 中指定规则
+3. 在(项目根目录) `stylelint.config.js` 中指定规则
+
+---
+
+报错: ` Unexpected unknown at-rule "@bg-color:"  at-rule-no-unknown`
+
+解决: 在 `package.json` 中禁用 `at-rule-no-unknown` 规则
+
+```json
+{
+   "stylelint": {
+      "extends": "stylelint-config-standard",
+      "rules": {
+         "at-rule-no-unknown": false
+      }
+   }
+}
+```
+
+#### 6. 压缩 CSS
+
+安装
+
+```shell
+npm i optimize-css-assets-webpack-plugin -D
+# 如果报错了, 就是用这个
+npm i optimize-css-assets-webpack-plugin -D --force
+```
+
+引入
+
+```js
+const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+```
+
+配置(`plugins` 模块)
+
+```js
+new OptimizeCssAssetsPlugin()
+```
+
+### 2.2.打包 HTML
+
+
+### 2.3.打包JS
+
+
+### 2.4.打包图片
+
+
+### 2.5.打包字体
+
+
+### 2.6.资源模块(Asset Modules)
+
+
+
+### 2.7.开发服务器(Dev Server)
 
 
 ## 3. 进阶
