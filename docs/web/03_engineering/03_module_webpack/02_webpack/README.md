@@ -1222,64 +1222,8 @@ devServer: {
 }
 ```
 
-## 3. 进阶
+---
 
-### 1. 区分打包环境
+开始下一阶段前，将插件版本号改为与教程一致。
 
-
-
-### 2. 自定义 plugin
-
-
-
-### 3. 自定义 loader
-
-
-
-### 4. 代码分离(Code Splitting)
-
-
-
-### 5. 源码映射(Source Map)
-
-
-
-### 6. 删除冗余代码(Tree Shaking)
-
-
-
-### 7. 缓存
-
-
-
-### 8. 模块解析(resolve)
-
-
-
-### 9. 排除依赖(externals)
-
-
-
-### 10. 模块联邦
-
-
-
-## 4. 项目
-
-### 1. 常规操作(项目部署)
-
-
-
-### 2. Webpack 中使用 Bootstrap 
-
-
-
-### 3. Webpack 在 Vue 中的应用
-
-
-
-### 4. Webpack 在 React 中的应用
-
-
-
-
+删除 package-lock.json 后，使用 yarn 安装，成功。
