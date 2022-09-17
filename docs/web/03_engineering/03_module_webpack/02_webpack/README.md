@@ -609,6 +609,131 @@ plugins: [
 
 ### 2.3.打包JS
 
+#### Webpack 编译 JS
+
+目的: 将 ES6+ 转成 ES5，从而保证，JS 在低版本浏览器的兼容性
+
+安装
+
+```shell
+npm i babel-loader @babel/core @babel/preset-env -D --force
+```
+
+配置: <https://www.npmjs.com/package/babel-loader>
+
+> 转换规则: 参考 Gulp
+
+> 备注: 此处实测并不能转换箭头函数, 回退到教程相同版本的插件也不行. 可能是因为底层的包版本更新了, 也许是默认规则集变了, 不纠结.
+
+---
+
+- `@babel/preset-env` 只能转译基本语法(Promise 就不能转换)
+- `@babel/polyfill` (转译所有 JS 新语法)
+
+```shell
+npm i @babel/polyfill -D --force
+```
+
+```js
+// 入口文件中引入
+import '@babel/polyfill'
+```
+
+> 注意: 要在入口文件中引入, 如果在入口文件中不引入, 不能实现.
+
+---
+
+`ployfill` 插件虽然能够转译新的语法, 但是转换了所有的新语法, 很多没有用到的新特性也会转译, 这样造成了 bundle.js 文件的膨胀和性能的浪费.
+
+- `core-js` (按需转译 JS 新语法)
+
+```shell
+# 安装
+npm i core-js -D --force
+```
+
+配置
+
+- 按需加载 `useBuiltIns: 'usage'`
+- 指定版本 `corejs: 3`
+
+```js
+presets: [
+   ['@babel/preset-env',
+      {
+         // 按需加载
+         useBuiltIns: 'usage',
+         // corejs 的版本
+         corejs: 3,
+         // targets 后面可以指定浏览器兼容的版本
+         targets: {
+            chrome: '58',
+            ie: '9',
+            firefox: '60',
+            safari: '10',
+            edge: '17'
+         }
+      }
+   ]
+]
+```
+
+> 注意: 此时打包时, 要去掉在入口文件引入的 `import '@babel/polyfill'` 代码, 才能实现按需加载.
+
+#### Webpack 校验 JS 代码格式
+
+安装
+
+```shell
+npm i eslint eslint-config-airbnb-base eslint-webpack-plugin eslint-plugin-import -D --force
+```
+
+- `eslint` (校验 JS 代码格式的工具); [官网](https://eslint.org/)
+- `eslint-config-airbnb-base` (最流行的 JS 代码格式规范); [npmjs地址](https://www.npmjs.com/package/eslint-config-airbnb-base); [GitHub地址](https://github.com/airbnb/javascript)
+- `eslint-webpack-plugin` (Webpack 的 eslint 插件); [npmjs地址](https://www.npmjs.com/package/eslint-webpack-plugin)
+- `eslint-plugin-import` 用于在 `package.json` 中读取 `eslintConfig` 配置项
+
+配置:
+
+- `eslint-webpack-plugin`
+
+```js
+const ESLintPlugin = require("eslint-webpack-plugin")
+
+plugins: [
+    new ESLintPlugin(options)
+]
+```
+
+- `eslintConfig` (package.json)
+
+```json
+{
+   "eslintConfig": {
+      "extends": "airbnb-base"
+   }
+}
+```
+
+> 备注: 两个文件都需要添加.
+
+---
+
+自动修复常规报错:
+
+```js
+new EsLintPlugin({
+   // 自动解决常规的代码格式报错
+   fix: true
+})
+```
+
+在代码中局部禁用 ESLint 检查
+
+```js
+// eslint-disable-next-line
+window.showMsg = showMsg;
+```
 
 ### 2.4.打包图片
 
