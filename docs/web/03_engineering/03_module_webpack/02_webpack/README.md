@@ -551,6 +551,61 @@ new OptimizeCssAssetsPlugin()
 
 ### 2.2.打包 HTML
 
+html-webpack-plugin
+
+- 生成 HTML 文件(用于服务器访问, 源代码中可以不写 index.html 文件了)，并在 HTML 中加载所有的打包资源(无需手动在页面中通过 script 或者 style 标签引入)
+- 指定 HTML 模板、设置 HTML 变量、压缩 HTML
+
+> 指定模板是为了满足"默认自动生成的首页文件不能满足需求"的情况; 模板文件的位置可以通过插件的 template 参数指定;
+
+安装
+
+```shell
+npm i html-webpack-plugin -D
+```
+
+配置: <https://www.npmjs.com/package/html-webpack-plugin>
+
+---
+
+```js
+plugins: [
+    // Html 配置
+    new HtmlWebpackPlugin({
+      // 指定打包后的文件名称
+      filename: 'index.html',
+      // 用来指定生成 html 的模板
+      template: './src/index.html',
+      // 指定 HTML 中使用的变量
+      title: 'Webpack Demo'
+    }),
+    // 配置另一个 Html
+    new HtmlWebpackPlugin({
+      filename: 'about.html',
+      template: './src/index.html',
+      title: '关于我们',
+      // 文件压缩
+      minify: {
+        collapseWhitespace: true,
+        keepClosingSlash: true,
+        removeComments: true,
+        removeRedundantAttributes: true,
+        removeScriptTypeAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        useShortDoctype: true
+      }
+    })
+  ]
+```
+
+变量使用
+
+```html
+<!--注意语法: 此处插件名要使用小驼峰的命名方式-->
+<title><%= htmlWebpackPlugin.options.title %></title>
+```
+
+> 实际使用中, 可以通过不同的打包模式决定是否压缩文件; 如: dev 环境不压缩, prod 环境压缩.
 
 ### 2.3.打包JS
 
