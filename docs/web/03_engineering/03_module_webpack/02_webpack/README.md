@@ -1060,19 +1060,226 @@ plugins: [
 ]
 ```
 
+> 插件不知道为什么不生效。
+
 ### 2.6.资源模块(Asset Modules)
 
+#### 功能
 
+- 资源模块是一种模块类型，它允许使用**资源文件**，而无需配置额外 `loader`
+- 资源文件: 字体、图片、图标、HTML......
+- 不用 `file-loader`、`url-loader` 也能加载图片和字体
 
+详情: <https://webpack.docschina.org/guides/asset-modules/>
+
+#### Webpack 4
+
+- raw-loader(将文件导入为字符串)
+- file-loader(将文件发送到输出目录)
+- url-loader(将文件发送到输出目录，或转为 Data URI 内联到 bundle 中)
+
+#### Webpack 5
+
+- `asset/resource` 发送一个单独的文件并导出 URL(之前通过使用 file-loader 实现)
+- `asset/inline` 导出一个资源的 data URI(之前通过使用 url-loader 实现)
+- `asset/source` 导出资源的源代码(之前通过使用 raw-loader 实现)
+- `asset` 在导出一个 data URI 和发送一个单独的文件之间自动选择
+
+> data URI 就是前面的转 Base64
+
+```js
+// webpack.config.js
+module: {
+   rules: [
+      // 处理图片
+      {
+         test: /\.(png|gif|jpe?g)$/i,
+         // 使用资源模块处理图片
+         type: 'asset',
+         parser: {
+            dataUrlCondition: {
+               maxSize: 8 * 1024 // 使用 inline (Base64转换)的方式进行处理的阈值
+            }
+         },
+         generator: {
+            filename: 'image/[name][ext]' // 打包后的路径和文件名; 后缀名已经包含了 . 符号，如：.jpg
+         }
+      },
+      // 匹配字体文件
+      {
+         test: /\.(eot|svg|ttf|woff|woff2)$/i,
+         type: 'asset', // asset 可以在 asset/resource 和 asset/inline 之间进行选择; 如果文件 < 8kb, 则使用 inline 进行处理, 否则使用 resource 进行处理; 这个默认大小可以配置
+         parser: {
+            dataUrlCondition: {
+               maxSize: 8 * 1024 // 使用 inline (Base64转换)的方式进行处理的阈值
+            }
+         },
+         generator: {
+            filename: 'fonts/[name][ext]' // 打包后的路径和文件名
+         }
+      }
+   ]
+}
+```
 
 ### 2.7.开发服务器(Dev Server)
 
+作用: 发布 web 服务，提高开发效率
+
+详情:
+
+- <https://www.npmjs.com/package/webpack-dev-server>
+- <https://webpack.docschina.org/configuration/dev-server> 
+
+使用: 
+
+```shell
+# 安装
+npm i -D webpack-dev-server
+```
+
+配置
+
+```js
+// webpack.config.js
+devServer: {
+   // 指定发布内容的路径
+   // contentBase: resolve(__dirname, 'dist'), // 必须是绝对路径 // 新版本的 webpack-server 已经没有这个参数了，使用 static
+   static: {
+      directory: resolve(__dirname, 'dist'),
+   },
+   // 启用 gzip 压缩
+   compress: true,
+   // 指定发布端口号
+   port: 9200
+}
+```
+
+```shell
+# Webpack 4 启动
+webpack-dev-server ... 
+
+# Webpack 5 启动
+webpack serve ...
+```
+
+---
+
+热更新
+
+Webpack 4
+
+`hot: true`
+
+Webpack 5
+
+- `liveReload: true` (禁用 hot)
+- `target: "web"` (热更新只适用于 web 相关的 `targets`) 【注意: `target` 的配置是与 `devServer` 平级的】
+
+> 因为 webpack 任务，只在 NodeJS 中运行的程序，不需要热更新。
+
+> 注意：要想正常执行热更新，一定要保证过程中没有 ESLint，StyleLint 等的报错和警告。
+
+webpack-dev-server 使用的是内存中的数据，所以项目中不会生成 dist 目录，更加不会读取 dist 目录中的数据了。
+
+---
+
+proxy 配置接口代理
+
+解决 `webpack-dev-server` 下，访问接口的跨域问题.
+
+
+```js
+// webpack.config.js
+
+// 开发服务器
+devServer: {
+  // 指定发布内容的路径
+  // contentBase: resolve(__dirname, 'dist'), // 必须是绝对路径 // 新版本的 webpack-server 已经没有这个参数了，使用 static
+  static: {
+     directory: resolve(__dirname, 'dist'),
+  },
+  // 启用 gzip 压缩
+  compress: true,
+  // 指定发布端口号
+  port: 9200,
+  // 启用自动更新（需要禁用 hot）
+  liveReload: true,
+  // 配置代理，解决接口跨域问题
+  proxy: {
+    // http://localhost:9200/api
+    '/api': {
+      // 当访问 http://localhost:9200/api/users 时，实际访问 https://api.github.com/api/users
+      target: 'https://api.github.com',
+        // 当访问 http://localhost:9200/api/users 时，实际访问 https://api.github.com/users
+        pathRewrite: {
+          '^/api': ""
+        },
+       // 不能使用 localhost:9200 作为 github 的主机名;
+       changeOrigin: true
+    }
+  }
+}
+```
 
 ## 3. 进阶
+
+### 1. 区分打包环境
+
+
+
+### 2. 自定义 plugin
+
+
+
+### 3. 自定义 loader
+
+
+
+### 4. 代码分离(Code Splitting)
+
+
+
+### 5. 源码映射(Source Map)
+
+
+
+### 6. 删除冗余代码(Tree Shaking)
+
+
+
+### 7. 缓存
+
+
+
+### 8. 模块解析(resolve)
+
+
+
+### 9. 排除依赖(externals)
+
+
+
+### 10. 模块联邦
 
 
 
 ## 4. 项目
+
+### 1. 常规操作(项目部署)
+
+
+
+### 2. Webpack 中使用 Bootstrap 
+
+
+
+### 3. Webpack 在 Vue 中的应用
+
+
+
+### 4. Webpack 在 React 中的应用
+
 
 
 
