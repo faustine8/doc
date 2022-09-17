@@ -737,11 +737,331 @@ window.showMsg = showMsg;
 
 ### 2.4.打包图片
 
+#### `file-loader`
+
+将用到的图片复制到输出目录，过滤掉不用的图片
+
+```shell
+npm i file-loader -D
+```
+
+<https://www.npmjs.com/package/file-loader>
+
+---
+
+实践
+
+```js
+// index.js
+// 以模块的方式引入图片
+import boy from './image/xph.gif'
+
+const img = new Image();
+img.src = boy;
+document.body.append(img);
+```
+
+配置 (webpack.conf.js > module.rules)
+
+```js
+// 处理图片
+{
+  test: /\.(png|gif|jpe?g)$/i,
+  use: {
+    loader: 'file-loader'
+  }
+}
+```
+
+在 css 中引入图片
+
+> 注意： 此处实验时一定要保证 `css-loader` 插件的版本是 `^5.2.4`
+
+```less
+// main.less
+body {
+  background: url('../image/bg.jpg');
+}
+```
+
+> 测试其实不改 `MiniCssExtractPlugin.loader` 的选项，背景图片也可以正常展示，可能是 html-loader 插件更新了吧，不纠结
+
+#### `url-loader`
+
+- 是 `file-loader` 的升级版，如果图片小于配置大小，会转成 base64 字符串
+- 转成 base64 字符串后，图片会跟 js 一起加载(减少图片的请求次数)
+
+```shell
+npm i url-loader -D
+```
+
+> 注意：添加了 url-loader 之后，不能删除 file-loader
+
+<https://www.npmjs.com/package/url-loader>
+
+实践
+
+使用：
+
+```js
+// index.js
+// 引入首页图片
+import homeIcon from './image/icon/home-blue.png'
+// eslint-disable-next-line
+const img1 = new Image();
+img1.src = homeIcon;
+
+// eslint-disable-next-line
+document.body.append(img1);
+```
+
+配置：
+
+```js
+// module.rules > 处理图片的规则
+use: {
+  loader: 'url-loader', // 注意：此处要改成 url-loader ！！！！
+  options: {
+    // 指定图片大小，小于这个值的图片会被转为 Base64; 单位：byte
+    limit: 8 * 1024 // 8 kb
+  }
+}
+```
+
+---
+
+扩展：Base64
+
+Base 64 格式：
+
+![字符串格式](./assets/README-1663390728324.png)
+
+图片示例：
+
+![字符串示例](./assets/README-1663390753894.png)
+
+![转换示例](./assets/README-1663390778308.png)
+
+
+---
+
+处理 CSS 中的图片路径(例如:背景图片加载失败)
+
+```js
+use: [
+   // MiniCssExtractPlugin 将 CSS 打包到独立的文件中
+   {
+      loader: MiniCssExtractPlugin.loader,
+      options: {
+          publicPath: '../' // 为背景图片指定路径
+      }
+   },
+   'css-loader',
+   'postcss-loader',
+   'less-loader'
+]
+```
+
+> 这个修改在 `module.rule` 中，对 less 和 css 的配置都要添加。
+
+#### html-loader
+
+前面引入图片都是通过在入口文件 index.js 中使用 `import` 的方式导入，如果直接在 index.html 中添加 `<img>` 标签引入图片，并不能正常引入。
+如何解决呢？ 只需要使用 `html-loader` 插件就可以了。
+
+基本功能：
+
+- 将 HTML 导出为字符串(负责引入 img，从而能被 url-loader 进行处理) 
+- <https://www.npmjs.com/package/html-loader>
+
+安装
+
+```shell
+npm i -D html-loader 
+```
+
+安装完成后还需要在 webpack.config.js 中的 `module.rule` 添加配置
+
+```js
+{
+  test: /\.(htm|html)$/i,
+  use: {
+    loader: 'html-loader'
+  }
+}
+```
+
+使用 `webpack` 命令构建后，index.html 的 `<img>` 标签内容变为如下：
+
+```html
+<img src="a369c76704364cfb1310.png" alt="">
+```
+
+但是，查看这个图片却是有问题的。因为 url-loader 默认采用 ES Modules 规范进行解析，但是 html-loader 引入图片使用的是 CommonJS 规范。
+
+解决：关闭 url-loader 默认的 ES Modules 规范，强制 url-loader 使用 CommonJS 规范进行打包。
+
+> 前面"在 css 中引入图片"部分，之所以要回退版本，也是这个原因导致的。
+
+配置修改：
+
+```js
+rules: [
+   // 处理图片
+   {
+      test: /\.(png|gif|jpe?g)$/i,
+      use: {
+         loader: 'url-loader',
+         options: {
+            limit: 8 * 1024,
+            name: "image/[name].[ext]",
+            // 强制使用 CommonJS 规范
+            esModule: false
+         }
+      }
+   },
+   {
+      test: /\.(htm|html)$/i,
+      use: {
+         loader: 'html-loader',
+         options: {
+            // 如果是 webpack 4 的话，只需要在 url-loader 中配置 esModule: false; 此处可以不添加
+            // webpack 5 中，此处必须也添加 esModule: false
+            esModule: false
+         }
+      }
+   },
+]
+```
+
+再次打包，可以发现构建后的 index.html 的 `<img>` 标签中的 src 已经变成了 Base64 的内容：
+
+```html
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAABmJLR0QA/wD/AP+gvaeTAAADWUlEQVRYhc3YS2tdVRQH8F9UrGBy05EoSHykRq0N6SNSEEEnioiv0kGQggMHQkfiQAitDmxTEK0d+PgG+gVEihgTFKTEF7Q2aVEEW8GRtvQhmgyadLD2pTf3ce45555b+ofL4e699lr/vddjP7jBMVCBjo0YwwgGU9u/+BO/4UIFNgpjB45gEatY6/BbxUkcxvYyhoqs4ABewj5MJgIn8W0iehYXk+ww7sUjeBJb0vgfcAiflyGbhTHMJ1L/4ADuLzB+FAdxLumYxaaqyO3BZSwnYoPZ4pkYxEzSdQlTvZLbL+JoSbirKozjVNI9XVbJW8Id86hVw2sdBvFlslGY5B4xu1lsqJbXOmzAXLKV291jIuaW9BZveVHDaVEBRrsJDwiXLqs25rphHCv4qpvgLhETB/rNqA0OJdvPZQn9KOrc7X0gcJNIis869A+JOrnQScEO/V29N5L+/RkyM0lmW7vOIyKbiuwQefEQ/sNPuCVD7oHE4f12nYs4UTm1ILQgEm9LDvlFHG9u3CiYf1gptcA+4bY3c8p/nLis2xx2JiWvVUotStX/OIabc47Zm7hMEpkFd6fvmRwK7pMvy2/Fp7iCV9I3D/5I35FGgkPpezmHgp/FitzZRe5tbBX77O85yXHtTDnUSLAIXsdmfCdWsx0eTcTm8EkJGy3YLfz+dE75F0Vs/aU1M28T+/hF3FOCyzOJy67GxjJJ8kQicR6PNbQfTrpeLUGOpiSpo15mPiqobBJ/i9h9Co+LZPiiJDkiJFrKDPySfkXxsLhiLguXn8NdPRBc0qZQwweCedczWRuM4FfhmpdLU4uz6Brea9e5PXUeLKn8DrxTcmwd9SPX1k4C3wsXXY+TdDNqIuGOZQm9IGYwcz0YNeHdZPvZboKzIuDH+82oARPiyH80j/Amcak+pT/XzWYMiwS7oPPO1IIpkdFf6/+1cz7Z2l108LSIiTn9Wclh19578p4VWzAtZndatTE5Idy6qgdydUyJmFwRdWooWzwTNZGtKyLmCru1E0bFpXpN1MkZccHJizExufNJx1E5E6LoE/Dz4tq4M/1fwjfionNG6wPmuHjA3JzaF8ROlauc9IJt4mp4Qvcn4ONib50oY6iKR/QaHtT6iH5WPKJfqsDGjYurIzDScITvZJUAAAAASUVORK5CYII=" alt="">
+```
+
+此时图片能够正常展示，但是我们前面使用的模板语法(`<title><%= htmlWebpackPlugin.options.title %></title>`) 又不能正常展示了。
+这是因为 html-loader 与 html-webpack-plugin 的冲突 导致的。
+
+#### html-loader 与 html-webpack-plugin 的冲突
+
+- 原因: htmlWebpackPlugin 会检查目标文件是否已经有 loader 处理，如果有其他 loader 处理，htmlWebpackPlugin 不再使用 `lodash.template` 去处理 ejs 语法
+- 解决: 将 webpack.config.js 文件中的 `plugins` 中的 htmlWebpackPlugin 中，模板文件的后缀名改成 `.ejs` (非 .html)
+
+> 配置当中的 `index` 文件的后缀名改了，真实的模板文件的后缀名也要改。
+
+改完之后重新构建后发现，`title` 倒是成功了，`<img>` 文件导入又回去了：`<img src="./image/icon/ok-black.png" alt="">`。
+
+---
+
+那么到底应该怎么处理呢？
+
+终极方案：
+
+我们可以在 `index.ejs` 文件中修改图片引入方式，使用 ejs 的语法引入图片
+
+```html
+<img src="<%= require('./image/icon/ok-black.png') %>" alt="">
+```
+
+再次打包可以发现 title 和 img 都正常生效了。
+
+> 此时，相当于我们配置的 `html-loader` 的规则就失效了。
+
+---
+
+最佳实践：
+
+- 如果是纯静态的模板(就是没有使用 ejs 语法)，可以使用 `'html-loader` 的方式解决 HTML 模板中图片加载的问题。
+- 如果是使用了 ejs 语法的模板，使用 htmlWebpackPlugin 插件配置和 ejs 语法引入图片的方式，解决模板中图片加载的问题。
 
 ### 2.5.打包字体
 
+- 字体文件: <https://www.iconfont.cn/>
+- file-loader 打包字体文件 `test: /\.(eot|svg|ttf|woff|woff2)$/i`
+
+```js
+// webpack.config.js
+module: {
+   rules: [
+      // 匹配字体文件
+      {
+         test: /\.(eot|svg|ttf|woff|woff2)$/i,
+         use: {
+            loader: 'file-loader',
+            options: {
+               // 打包构建后的字体文件名和路径
+               name: 'fonts/[name].[ext]'
+            }
+         }
+      },
+   ]
+}
+```
+
+> 完事后并看不出来有什么不一样。
+
+---
+
+其他常用工具：
+
+- `copy-webpack-plugin` 不需要处理的其他文件，可以直接复制到输出目录(<https://www.npmjs.com/package/copy-webpack-plugin>)
+- `clean-webpack-plugin` 每次打包之前，先删除历史文件 (<https://www.npmjs.com/package/clean-webpack-plugin>)
+
+安装：
+
+```shell
+npm i -D copy-webpack-plugin
+```
+
+配置：
+
+```js
+const CopyWebpackPlugin = require('copy-webpack-plugin')
+
+plugins: [
+   // 直接将 src 下不需要特殊处理的文件，直接复制到输出目录中
+   new CopyWebpackPlugin({
+      patterns: [
+         {
+            from: "src/public",
+            to: "public"
+         }
+      ]
+   })
+]
+```
+
+在 `index.ejs` 中使用
+
+```html
+<link rel="shortcut icon" href="public/favicon.ico" type="image/x-icon">
+```
+
+重新打包构建后，查看效果。
+
+---
+
+构建前先清理历史文件
+
+```shell
+npm i -D clean-webpack-plugin
+```
+
+引入插件时必须使用解构的方式引入
+
+```js
+// webpack.config.js
+const { CleanWebpackPlugin } = require('clean-webpack-plugin')
+
+plugins: [
+   // 打包之前先清除历史文件
+   new CleanWebpackPlugin()
+]
+```
 
 ### 2.6.资源模块(Asset Modules)
+
 
 
 
