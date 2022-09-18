@@ -814,45 +814,261 @@ document.getElementById('btn').onclick = function () {
 
 ### 3.5.源码映射(Source Map)
 
+什么是 Source Map ？
+
+是一种源代码与构建后代码之间的映射技术。
+
+为什么要用 Source Map ？
+
+- 问题: 构建后代码出了问题之后不好定位
+- 方案: 有了 Source Map 后，可以快速定位问题代码
+
+如何生成 Source Map ？ 
+
+devtool: '映射模式'
+
+---
+
+映射模式(devtool 的值)
+
+- 不同映射模式的定位效果和执行速度不同
+- Webpack 4 中，一共有 13 种不同的映射模式
+- Webpack 5 中，一共有 26 种不同的映射模式
+
+Webpack 5 中的命名更新严格
+
+- `cheap-module-eval-source-map` => `eval-cheap-module-source-map`
+- `^(inline-|hidden-|eval-)?(nosources-)?(cheap-(module- )?)?source-map$`
+
+![source-map](./assets/README-1663508122085.png)
+
+![cheap-source-map](./assets/README-1663508141980.png)
+
+---
+
+比较文件内容
+
+![cheap-module-map](./assets/README-1663508216868.png)
+
+
+![nosources-source-map](./assets/README-1663508242297.png)
+
+
+---
+
+#### 映射模式选择
+
+如何选取合适的映射模式 (个人建议 - 不绝对)
+
+- 开发环境(cheap-module-eval-source-map)
+- 生产环境(none | nosources-source-map)
+
 
 
 ### 3.6.删除冗余代码(Tree Shaking)
 
+Tree Shaking(摇树)
 
+Tree Shaking 的作用是删除未引用代码(dead code)
+
+- return 后面的代码
+- 只声明，而未使用的函数
+- 只引入，未使用的代码
+
+![TreeShaking](./assets/README-1663508402095.png)
+
+#### 使用
+
+前提:
+
+- 使用 ES Modules 规范的模块，才能执行 Tree Shaking
+- Tree Shaking 依赖于 ES Modules 的静态语法分析
+
+如何使用？
+
+- 生产模式: Tree shaking 会自动开启
+- 开发模式:
+  - usedExports
+  - sideEffects
+
+#### usedExports
+
+`optimization.usedExports`(标记没用的代码)
+
+```js
+/* unused harmony export xxxxx */
+```
+
+terser-webpack-plugin(删除没用的代码)
+
+- `optimization.minimize: true` (删除 unused harmony export xxxxx 标记的代码 )
+- Webpack 4 需要单独安装(Webpack 5 无需安装)
+- <https://www.npmjs.com/package/terser-webpack-plugin>
+
+**Tree Shaking 与 Source Map 存在兼容性问题**
+
+- devtool: source-map | inline-source-map | hidden-source-map | nosources-source-map
+- eval 模式，将 JS 输出为字符串(不是 ES Modules 规范)，导致 Tree Shaking
+
+#### sideEffects
+
+副作用
+
+- 无副作用:如果一个模块单纯的导入导出变量，那它就无副作用
+- 有副作用:如果一个模块还修改其他模块或者全局的一些东西，就有副作用
+  - 修改全局变量
+  - 在原型上扩展方法
+  - CSS 的引入
+
+sideEffects 的作用:把未使用但无副作用的模块一并删除。
+
+> 对于没有副作用的模块，未使用代码不会被打包(相当于压缩了输出内容)
+
+![副作用](./assets/README-1663508723495.png)
+
+开启副作用(webpack.config.js)
+
+```js
+optimization.sideEffects: true
+```
+
+标识代码是否有副作用(package.json)
+
+`sideEffects`
+
+- false: 所有代码都没有副作用(告诉 webpack 可以安全地删除未用的 exports)
+- true: 所有代码都有副作用
+- 数组: (告诉 webpack 哪些模块有副作用，不删除), 如：`['./src/wp.js', '*.css']`
 
 ### 3.7.缓存
 
+#### Babel 缓存
 
+`cacheDirectory: true` (第二次构建时，会读取之前的缓存)
+
+![缓存逻辑](./assets/README-1663508906900.png)
+
+#### 文件资源缓存
+
+- 如果代码在缓存期内，代码更新后看不到实时效果
+- 方案: 将代码文件名称，设置为哈希名称，名称发生变化时，就加载最新的内容
+
+![常规请求](./assets/README-1663508960305.png)
+
+
+![缓存请求](./assets/README-1663508979372.png)
+
+![缓存请求](./assets/README-1663509006462.png)
+
+![确保重新加载](./assets/README-1663509025337.png)
+
+#### Webpack 哈希值
+
+`[hash]`(每次 Webpack 打包生成的 hash 值)
+
+`[chunkhash]`(不同 chunk 的 hash 值不同 – 同一次打包可能生成不同的 chunk)
+
+`[contenthash]` (不同内容的 hash 值不同 - 同一个 chunk 中可能有不同的内容)
+
+![WebpackHash](./assets/README-1663509125084.png)
 
 ### 3.8.模块解析(resolve)
 
+```js
+import 'bootstrap';
+```
 
+resolve
+
+- 配置模块解析的规则
+- alias: 配置模块加载的路径别名
+- alias: {'@': resolve('src’)}
+- extensions: 引入模块时，可以省略哪些后缀
+- extensions: ['.js', '.json']
+- <https://www.webpackjs.com/configuration/resolve/>
 
 ### 3.9.排除依赖(externals)
 
+externals
 
+- 排除打包依赖项(防止对某个依赖项进行打包)
+- 一般来说，一些成熟的第三方库，是不需要打包的
+- 例如:jquery，我们可以直接使用 CDN 中的压缩版，没必要打包
+- https://www.webpackjs.com/configuration/externals/
 
 ### 3.10.模块联邦
 
+多个应用，可以共享一个模块(本地可以调用远程的模块)
 
+模块提供方
 
+- name: 当前应用名称(供调用方使用)
+- filename: 打包后的文件名称(供调用方使用)
+- exposes: 暴露模块(相当于 export 导出)
+- 模块名称:模块文件路径
+
+模块使用方
+
+- remote:导入模块(相当于 import)
+- 导入后的别名: "远程应用名称@远程地址/远程导出的文件名"
+- `import("导入后的别名/模块名称").then( //... )`
+
+![模块联邦](./assets/README-1663509356089.png)
+
+模块联邦: <https://webpack.js.org/concepts/module-federation/>
 
 ## 4.项目
 
 ### 4.1.常规操作(项目部署)
 
+```shell
+# 初始化项目
+npm init -y
+# 常规操作
+npm i -D webpack webpack-cli html-webpack-plugin webpack-dev-server copy-webpack-plugin clean-webpack-plugin mini-css-extract-plugin css- loader style-loader postcss-loader autoprefixer babel-loader @babel/core @babel/preset-env
+```
 
+- webpack.config.js
+- src/index.js
+- src/index.ejs
 
 ### 4.2.Webpack 中使用 Bootstrap
 
+<https://getbootstrap.com/docs/5.0/getting- started/webpack/>
 
+```shell
+# 安装 Bootstrap
+npm i bootstrap @popperjs/core
+# 样式
+npm i -D sass sass-loader
+```
+
+- 配置 sass 文件
+- 验证效果(导航菜单，轮播图)
 
 ### 4.3.Webpack 在 Vue 中的应用
 
-
+```shell
+# 安装脚手架工具
+npm install -g @vue/cli
+# 初始化 vue 项目
+vue init webpack projectname
+# 运行 vue 项目
+cd projectname
+npm run dev
+```
 
 ### 4. Webpack 在 React 中的应用
 
-
-
+```shell
+# 安装脚手架工具
+npm install -g create-react-app
+# 初始化 React 项目
+create-react-app projectname
+# 运行 React 项目
+cd projectname
+npm start
+# 弹出 webpack 配置
+npm run eject
+```
 
