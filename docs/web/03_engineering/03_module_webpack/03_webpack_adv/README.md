@@ -1346,48 +1346,204 @@ hash 的默认长度是 20，可以通过 `[name].[hash:8].js` 的方式，将 h
 
 ### 3.8.模块解析(resolve)
 
+观察如下一段代码：
+
 ```js
 import 'bootstrap';
 ```
 
-resolve
+可能会有疑问：这是在哪里引入的 boostrap ? 引入的是哪种类型的文件 ？是 .js 还是 .css ?
 
-- 配置模块解析的规则
-- alias: 配置模块加载的路径别名
-- alias: `{'@': resolve('src’)}`
-- extensions: 引入模块时，可以省略哪些后缀
-- extensions: `['.js', '.json']`
-- <https://www.webpackjs.com/configuration/resolve/>
+这就涉及"模块解析"中的规则。配置好模块解析规则后，代码会更加简洁。
+
+---
+
+`resolve` 配置项
+
+作用：配置模块解析的规则
+
+`resolve` 中有两个常用的配置项：
+
+1. `alias`: 配置模块加载的路径别名.
+
+```js
+alias: `{'@': resolve('src’)}` // 后续再引入 src 目录下的内容时，可以直接使用 @/ 的方式
+```
+
+2. `extensions`: 引入模块时，可以省略哪些后缀名.
+
+```js
+extensions: `['.js', '.json']` // 默认只识别 .js 和 .css 这两类文件。一旦这里显式的指定了扩展名之后，默认的规则就失效了。
+```
+
+> 如果我同时有 a.js, a.json, a.css, 那么我写 `import 'a'` 的时候到底引入谁呢？答案是这个数组中，谁先声明就引入谁。
+
+其他配置项详情：<https://www.webpackjs.com/configuration/resolve/>
+
+---
+
+实践
+
+修改配置文件 webpack.config.js
+
+```js
+module.exports = (env, argv) => {
+  const config = {
+    // 模块解析规则
+    resolve: {
+      alias: {
+        // 指定路径的别名
+        '@': resolve('src')
+      },
+      // 指定引入文件的后缀名。指定后，在引入文件时，后缀名可以省略。
+      extensions: ['.js', '.json', '.less'],
+      // 指定模块默认加载的路径
+      modules: [resolve(__dirname, './node_modules'), 'node_modules'] // 当前两个配置项都是从当前项目的根目录下的 node_modules 中加载；如果位置有变的话，第一个可以改为 ../node_modules
+    }
+  }
+  return config;
+}
+```
+
+然后在 index.js 中使用的时候
+
+```js
+import { add } from '@/math'
+console.log('2 + 4 = ',add(2, 4))
+```
+
+运行程序 `webpack serve`，在浏览器看到能够正常执行。OK~，其他的模块也可以这样引入了。
 
 ### 3.9.排除依赖(externals)
 
-externals
+`externals` 配置项
 
-- 排除打包依赖项(防止对某个依赖项进行打包)
-- 一般来说，一些成熟的第三方库，是不需要打包的
-- 例如:jquery，我们可以直接使用 CDN 中的压缩版，没必要打包
-- https://www.webpackjs.com/configuration/externals/
+功能：排除打包依赖项(防止对某个依赖项进行打包)
+
+一般来说，一些成熟的第三方库，是不需要打包的。例如:jquery，我们可以直接使用 CDN 中的压缩版，没必要打包。
+
+`externals` 详细信息：<https://www.webpackjs.com/configuration/externals/>
+
+---
+
+实践
+
+```js
+// webpack.config.js
+module.exports = (env, argv) => {
+  const config = {
+    // 排除打包依赖项
+    externals: {
+      'jquery': 'jQuery' // 前面是 库 的名字，后面是 包 的名字
+    }
+  }
+  return config;
+}
+```
+
+排除之后，可以在使用的地方直接引入。如 index.ejs 中
+
+```html
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+```
+
+程序也可以正常执行。
+
+> 后续如果使用了一些第三方的库，而且这些库也比较大，就可以使用 `extrenals` 将他们排除在打包之外。
 
 ### 3.10.模块联邦
 
 多个应用，可以共享一个模块(本地可以调用远程的模块)
 
-模块提供方
+模块提供方(远程)
 
-- name: 当前应用名称(供调用方使用)
-- filename: 打包后的文件名称(供调用方使用)
-- exposes: 暴露模块(相当于 export 导出)
-- 模块名称:模块文件路径
+- `name`: 当前应用名称(供调用方使用)
+- `filename`: 打包后的文件名称(供调用方使用)
+- `exposes`: 暴露模块(相当于 `export` 导出)，暴露模块时可以指定：`模块名称: 模块文件路径`
 
-模块使用方
+模块使用方(本地)
 
-- remote:导入模块(相当于 import)
-- 导入后的别名: "远程应用名称@远程地址/远程导出的文件名"
-- `import("导入后的别名/模块名称").then( //... )`
+- `remote`: 导入模块(相当于 `import`)
+- 导入语法：`导入后的别名: "远程应用名称@远程地址/远程导出的文件名"`
+- 使用语法：`import("导入后的别名/模块名称").then( //... )`
 
 ![模块联邦](./assets/README-1663509356089.png)
 
+可以在应用 B 中使用模块 D。
+
 模块联邦: <https://webpack.js.org/concepts/module-federation/>
+
+---
+
+实践
+
+创建两个项目 app1 和 app2
+
+```shell
+mkdir app1 app2
+
+cd app1
+npm init -y
+yarn add -D webpack@^5.38.1 webpack-cli@^4.7.0 html-webpack-plugin@^5.3.1 webpack-dev-server@^3.11.2
+
+cd ../app2
+npm init -y
+yarn add -D webpack@^5.38.1 webpack-cli@^4.7.0 html-webpack-plugin@^5.3.1 webpack-dev-server@^3.11.2
+```
+
+```js
+// app1/webpack.config.js
+// 引入模块联邦插件
+const Mfp = require('webpack').container.ModuleFederationPlugin
+
+module.exports = {
+  plugins: [
+    // 模块提供方
+    new Mfp({
+      // 应用名称 (供调用方使用)
+      name: 'app1',
+      // 导出文件的名称(调用方引入的文件名称)
+      filename: 'app1.js',
+      // 暴露模块
+      exposes: {
+        // 模块名称：模块对应的代码路径
+        './sitename': './src/sitename.js'
+      }
+    })
+  ]
+}
+```
+
+```js
+// app2/webpack.config.js
+// 引入模块联邦插件
+const Mfp = require('webpack').container.ModuleFederationPlugin
+
+module.exports = {
+  plugins: [
+    // 模块使用方
+    new Mfp({
+      // 导入模块
+      remotes: {
+        // 导入别名："远程应用名称@远程应用地址/远程导出文件的名称"
+        appone: "app1@http://localhost:3001/app1.js"
+      }
+    })
+  ]
+}
+```
+
+```js
+// app2/index.js
+// 调用 app1 中的模块
+import('appone/sitename').then(res => {
+  // res.default() // 调用默认返回的函数
+  const title = res.default('应用B')
+  document.body.append(title)
+})
+```
+
+> 模块联邦也是微前端的解决方案。
 
 ## 4.项目
 
