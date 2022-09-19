@@ -816,7 +816,7 @@ document.getElementById('btn').onclick = function () {
 
 什么是 Source Map ？
 
-是一种源代码与构建后代码之间的映射技术。
+Source Map 是一种源代码与构建后代码之间的映射技术。具体来说就是通过 `.map` 文件，将构建后的代码与源代码之间，建立映射关系。
 
 为什么要用 Source Map ？
 
@@ -825,45 +825,205 @@ document.getElementById('btn').onclick = function () {
 
 如何生成 Source Map ？ 
 
+只需要添加一个如下所示的配置项：
+
+```js
 devtool: '映射模式'
+```
 
 ---
 
-映射模式(devtool 的值)
+实践
+
+在 index.js 中改错一行代码，然后通过生产模式运行(生产模式会压缩代码)
+
+```shell
+webpack serve --env production
+```
+
+打开控制台，会发现代码有报错，同时发现错误定位到了 index.bundle.js 中，而这个文件所有代码都被压缩到一行代码当中了。那这时候怎么定位问题呢？
+
+可以通过 Source Map 的方式解决。
+
+```js
+// webpack.config.js
+if (env.production) {
+  // 启用 source map 定位问题
+  config.devtool = 'source-map'
+}
+```
+
+重启项目后刷新页面，会发现问题已经能够正常定位到源代码的位置了。
+
+> 之所以能够实现，是因为浏览器开启了 Source Map 的支持。
+> 
+> 开启 SourceMap 支持：Setting > Preferences > Sources > Enable JavaScript source maps, Enable CSS source maps
+
+---
+
+Source Map 的底层支持
+
+我们执行一下生产环境的打包，查看文件
+
+```shell
+webpack --env production
+```
+
+可以看到，在生成的文件中对 `*.bundle.js` 文件都生成了 `*.bundle.js.map` 文件，以 `desc.bundle.js.map` 文件为例：
+
+```json
+{"version":3,"file":"desc.bundle.js","mappings":"+GAGO,SAASA,IACd,MAAO,mBACR,C,2BAJDC,QAAQC,IAAI,S","sources":["webpack://11_source_map/./src/wp.js"],"sourcesContent":["// 判断模块是否加载\nconsole.log('模块加载了。')\n\nexport function desc() {\n  return 'Webpack 是一款前端打包工具'\n}"],"names":["desc","console","log"],"sourceRoot":""}
+```
+
+可以看到，其实本质上他就是一个 JSON。
+
+- `version`: Source Map 的版本，当前的 Source Map 的版本就是 3.
+- `sources`: 后面是一个数组，他包含的是转换前的文件的名称。当前例子中：转换前的文件名叫 wp.js, 转换后叫 desc.bundle.js。
+
+> `desc` 这个名字是通过懒加载的 `import()` 方法的 `webpackChunkName` 参数指定的。
+
+> `sources` 数组中的这个名字是转换前文件的全路径名; 其中 `11_source_map` 是 package.json 中指定的项目名;
+
+> `sources` 的数据类型是数组，那就表示可以是多个源文件，也就是说可以将多个源文件打包成一个文件。比如 `about.bundle.js.map` 中可以看出，有多个源文件。
+
+- `names`: 所有转换之前的变量、函数名等。
+- `mappings`: 重要。是一个字符串，在字符串中包含了映射关系。【这是关联源码和构建之后的代码的字符串】
+- `file`: 文件的名称。就是说当前 map 文件是哪一个文件的 map。比如当前文件就是 desc.bundle.js 文件的 map 文件。
+- `sourcesContent`: 就是源码内容。
+- `sourceRoot`: 一般为空。
+
+映射是如何完成的呢？
+
+构建后的代码在结尾都有一行注释，如下所示：
+
+```js
+// desc.bundle.js
+"use strict";(self.webpackChunk_11_source_map=self.webpackChunk_11_source_map||[]).push([[612],{9838:(e,c,s)=>{function u(){return"Webpack 是一款前端打包工具"}s.r(c),s.d(c,{desc:()=>u}),console.log("模块加载了。")}}]);
+//# sourceMappingURL=desc.bundle.js.map
+```
+
+`sourceMappingURL=desc.bundle.js.map` 表明：当前这个 js 文件是通过 sourceMappingURL 这个文件完成映射。
+
+---
+
+还有一个小问题：我们发现构建后的所有的 .js 文件都有一个 .js.map 的文件。这实际上跟我们刚刚的配置有关，
+我们使用的 `devtool` 是 `'source-map'`，如果启用其他的映射模式，这里单独的 .map 文件可能会消失，会把映射内容放到 *.bundle.js 当中。
+下一节我们仔细研究 `devtool` 中的各种映射模式。
+
+#### 3.5.1.映射模式
+
+> 映射模式就是指 `devtool` 可选的值。
 
 - 不同映射模式的定位效果和执行速度不同
 - Webpack 4 中，一共有 13 种不同的映射模式
 - Webpack 5 中，一共有 26 种不同的映射模式
 
-Webpack 5 中的命名更新严格
+Webpack 5 中的命名也更加严格
 
-- `cheap-module-eval-source-map` => `eval-cheap-module-source-map`
-- `^(inline-|hidden-|eval-)?(nosources-)?(cheap-(module- )?)?source-map$`
+`cheap-module-eval-source-map`(Webpack4) => `eval-cheap-module-source-map`(Webpack5)
+
+Webpack5 的统一语法格式：`^(inline-|hidden-|eval-)?(nosources-)?(cheap-(module-)?)?source-map$`
+
+---
+
+关键字详解：
+
+- `source-map`: 功能最全，也最慢。报错时，可以定位到具体的行和列。
+- `cheap`: 相对于不 cheap 的少了一些信息，具体来说就是少了报错的"列"信息。
+- `hidden`: 本意是隐藏，我们可以通过 `hidden` 模式生成 `.map` 文件，但是在 `.js` 的尾部没有关联这个 `.map` 文件。需要手动查看报错的时候，才去关联。
+- `inline`: 不生成 `.map` 文件，映射相关的内容会以 Base64-VLQs 的形式添加到 .js 文件的后面。
+- `eval`: 不生成 `.map` 文件，映射信息追加到 `eval` 函数的最后
+- `module`: 不但映射工程师自己写的代码，还支持对 loader 和第三方模块的映射
+- `nosources`: 就是没有源代码，生成的 `.map` 中不包含 `sourcesContent`, 定位错误时看不到源码，更加安全。
+
+##### source-map
 
 ![source-map](./assets/README-1663508122085.png)
 
+##### cheap-source-map
+
 ![cheap-source-map](./assets/README-1663508141980.png)
 
----
+相较于 source-map 少了 `names`, 因为 `names` 中保存了函数和变量名，所以也就丢失了定位列的能力。
 
-比较文件内容
+> 他定位列就是通过变量和函数名来实现的。
 
-![cheap-module-map](./assets/README-1663508216868.png)
+通过对比打包后的文件发现，cheap 的少了 `names` 属性，同时 `mappings` 属性的内容也相对少了很多，因为他只能定位到报错的行，不能定位到报错的列。cheap 的 .map 文件体积也会小很多。
 
+##### cheap-module-source-map
+
+![cheap-module-source-map](./assets/README-1663508216868.png)
+
+带了 `module` 因此会包含一些 loader 和第三方模块的映射。
+
+同时他也不包含 `names` 和 `sourcesContent`
+
+##### nosources-source-map
 
 ![nosources-source-map](./assets/README-1663508242297.png)
 
+去掉了源码内容，也是不包含 `sourcesContent` 了。
 
----
+##### hidden-source-map
 
-#### 映射模式选择
+![hidden-source-map](./assets/README-1663562415659.png)
+
+`.js` 文件尾巴上没有那一行关联的注释，因此不会关联上 `.map`, 只有收到报错时才会去关联。
+
+少了这个关联，在一定程度上提高了构建效率。
+
+##### inline-source-map
+
+![inline-source-map](./assets/README-1663562550463.png)
+
+不会生成独立的 `.map` 文件，直接将信息添加到 `.js` 文件结尾的关联的注释后面。
+
+##### inline-cheap-source-map
+
+![inline-cheap-source-map](./assets/README-1663562654471.png)
+
+##### inline-cheap-module-source-map
+
+![inline-cheap-module-source-map](./assets/README-1663562685927.png)
+
+##### eval
+
+![eval](./assets/README-1663562715997.png)
+
+代码映射放到了每个 `eval` 函数的最后。
+
+只能定位到文件，不能定位到行列。
+
+映射信息最少，执行速度最快。
+
+##### eval-source-map
+
+![eval-source-map](./assets/README-1663562731583.png)
+
+报错时增加了定位的行列信息。
+
+##### eval-cheap-source-map
+
+![eval-cheap-source-map](./assets/README-1663562753656.png)
+
+报错时只有行的定位信息。
+
+##### eval-cheap-module-source-map
+
+![eval-cheap-module-source-map](./assets/README-1663562776670.png)
+
+报错时包含了行列信息，而且还包含了第三方模块的映射。
+
+#### 3.5.2.映射模式选择
+
+前面的这些模式都是 Webpack4 中就已经有的，Webpack5 又新增了一些排列组合。Webpack 5 中新增了模式不一定都能生效，要使用时需要先验证。
+
+> 如：`inline-nosources-source-map`, 现在测试其实是成功的。
 
 如何选取合适的映射模式 (个人建议 - 不绝对)
 
-- 开发环境(cheap-module-eval-source-map)
-- 生产环境(none | nosources-source-map)
-
-
+- 开发环境(`cheap-module-eval-source-map`)
+- 生产环境(`none` | `nosources-source-map`)
 
 ### 3.6.删除冗余代码(Tree Shaking)
 
