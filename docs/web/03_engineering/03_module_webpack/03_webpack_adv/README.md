@@ -1340,6 +1340,10 @@ filename: '[name].[hash].js'
 
 再使用 `contenthash` 会发现 index.js 和 index.css 的 hash 值都不一样了。
 
+---
+
+hash 的默认长度是 20，可以通过 `[name].[hash:8].js` 的方式，将 hash 的长度限制到 8 位。
+
 ### 3.8.模块解析(resolve)
 
 ```js
