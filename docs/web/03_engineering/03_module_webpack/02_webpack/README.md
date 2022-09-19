@@ -129,7 +129,7 @@ Webpack 中，模块的概念比较宽泛(一切皆为模块)
 
 ```shell
 # 初始化项目
-mkdir myproject && cd myproject && npm init –y
+mkdir myproject && cd myproject && npm init -y
 
 # 安装 Webpack
 npm i -D webpack webpack-cli
@@ -464,7 +464,7 @@ const StylelintPlugin = require('stylelint-webpack-plugin');
 
 配置插件(写在 `plugins` 中)
 
-```shell
+```js
 new StylelintPlugin({
   // 指定需要进行格式校验的文件
   files: ['src/css/*.{css,less,sass,scss}']
@@ -841,7 +841,6 @@ Base 64 格式：
 ![字符串示例](./assets/README-1663390753894.png)
 
 ![转换示例](./assets/README-1663390778308.png)
-
 
 ---
 

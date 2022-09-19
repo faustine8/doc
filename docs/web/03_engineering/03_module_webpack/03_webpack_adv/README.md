@@ -1033,104 +1033,312 @@ Tree Shaking 的作用是删除未引用代码(dead code)
 
 - return 后面的代码
 - 只声明，而未使用的函数
-- 只引入，未使用的代码
+- 只引入了库，未使用库的代码
 
 ![TreeShaking](./assets/README-1663508402095.png)
 
-#### 使用
+为什么叫"摇树"呢？因为 Webpack 中各个模块的依赖，结构像树一样。这些依赖当中，有些模块可能没有用，如图中的 A 和 D，在打包的时候就去掉。
 
-前提:
+#### 3.6.1.使用
 
-- 使用 ES Modules 规范的模块，才能执行 Tree Shaking
-- Tree Shaking 依赖于 ES Modules 的静态语法分析
+前提: 使用 ES Modules 规范的模块，才能执行 TreeShaking
+
+> 因为 TreeShaking 依赖于 ES Modules 的静态语法分析。
 
 如何使用？
 
 - 生产模式: Tree shaking 会自动开启
 - 开发模式:
-  - usedExports
-  - sideEffects
+  - `usedExports`
+  - `sideEffects`
 
-#### usedExports
+#### 3.6.2.`usedExports` 实现
 
-`optimization.usedExports`(标记没用的代码)
+在 webpack.config.js 文件中指定 `optimization.usedExports` 选项。(标记没用的代码)
+
+> usedExports, 字面意思是：使用的导出。可以标记模块的哪些导出被使用了。能够知道哪些导出内容被使用了，当然也能知道哪些被导出的内容没有被使用。
+> 没有被使用的代码，就应该被删掉。
+
+在打包完成之后，没有用到的代码前面会加如下注释：
 
 ```js
 /* unused harmony export xxxxx */
 ```
 
-terser-webpack-plugin(删除没用的代码)
+这行注释就是用来标记没有用的代码的。
 
-- `optimization.minimize: true` (删除 unused harmony export xxxxx 标记的代码 )
+删除代码的功能由 `terser-webpack-plugin` 实现。
+
+`terser-webpack-plugin` 的功能就是：删除 `unused harmony export xxxxx` 标记的代码。
+
+----
+
+这种方式总共分两步：1、标记没有用的代码；2、删除标记的代码。
+
+---
+
+`terser-webpack-plugin`:
+
+- `optimization.minimize: true` ( 删除 `unused harmony export xxxxx` 标记的代码 )
 - Webpack 4 需要单独安装(Webpack 5 无需安装)
 - <https://www.npmjs.com/package/terser-webpack-plugin>
 
 **Tree Shaking 与 Source Map 存在兼容性问题**
 
-- devtool: source-map | inline-source-map | hidden-source-map | nosources-source-map
-- eval 模式，将 JS 输出为字符串(不是 ES Modules 规范)，导致 Tree Shaking
+- 要使用 TreeShaking, 映射模式只能是这四者之一：`devtool: source-map|inline-source-map|hidden-source-map|nosources-source-map`。
+- `eval` 模式，将 JS 输出为字符串(不是 ES Modules 规范)，导致 TreeShaking 失效。
 
-#### sideEffects
+---
 
-副作用
+实践
 
-- 无副作用:如果一个模块单纯的导入导出变量，那它就无副作用
-- 有副作用:如果一个模块还修改其他模块或者全局的一些东西，就有副作用
-  - 修改全局变量
-  - 在原型上扩展方法
-  - CSS 的引入
+在 src 下创建一个 math.js 文件
 
-sideEffects 的作用:把未使用但无副作用的模块一并删除。
+```js
+export function add(x, y) {
+  return x + y;
+
+  console.log('加法运算');
+}
+
+export function minus(x, y) {
+  return x - y;
+
+  console.log('减法运算');
+}
+```
+
+在 index.js 中使用它
+
+```js
+import { add } from './math.js'
+console.log('2 + 4 = ',add(2, 4))
+```
+
+此时，只引入了其中一个方法。然后执行一个线上打包：
+
+```shell
+webpack --env production
+```
+
+查看构建后的 index.bundle.js 中 `console.log("2 + 4 = ",6)` 后面并没有 `console.log('加法运算');`，说明 TreeShaking 是生效的。
+
+现在在开发环境下验证：
+
+首先添加 `optimization.usedExports: true`, 然后使用 `webpack` 命令执行开发环境下的打包。
+查看打包后的 index.bundle.js 文件, 可以看到未使用的代码 `minus` 方法和 `add` 方法上面的 `unused xx` 的注释。
+
+添加配置 `optimization.minimize: true`, 再次查看 index.bundle.js 可以看到 math.js 中没用的都已经删除了。
+
+> 如果这段构建出来的 index.bundle.js 和教程中的结果一样，检查一下是否在 webpack.config.js 中的开发环境默认配置中添加了 `devtool: 'source-map'`。
+
+```js
+const TerserPlugin = require('terser-webpack-plugin');
+
+module.exports = (env, argv) =>{
+  const config =   {
+    optimization: {
+      // 标记未被使用的代码
+      usedExports: true,
+      // 最小化输出(删除没有用的)
+      minimize: true,
+      // 指定最小化插件
+      minimizer: [new TerserPlugin()]
+    }
+  }
+  return config;
+}
+```
+
+#### 3.6.2.`sideEffects` 实现
+
+`sideEffects`的字面意思就是：副作用。
+
+- 无副作用: 如果一个模块单纯的导入导出变量，那它就无副作用
+- 有副作用: 如果一个模块除了实现自身基本功能外，还修改了其他模块或者全局的一些东西，就有副作用。
+
+如：修改全局变量，在原型上扩展方法，CSS 的引入等。
+
+比如：jQuery 中使用的 `$` 是挂载在 window 对象下面的，如果我们在代码中 `window.$ = 123`, 那么此时我们的代码就有副作用，因为他修改了全局对象 window 下面的内容。
+
+---
+
+`sideEffects` 的作用: 把未使用但无副作用的模块一并删除。
 
 > 对于没有副作用的模块，未使用代码不会被打包(相当于压缩了输出内容)
 
 ![副作用](./assets/README-1663508723495.png)
 
-开启副作用(webpack.config.js)
+TreeSharking 的时候有副作用的函数不会被删除，无副作用的函数会被删除。
+
+---
+
+1. 开启副作用(webpack.config.js)
 
 ```js
 optimization.sideEffects: true
 ```
 
-标识代码是否有副作用(package.json)
+2. 标识代码是否有副作用(package.json)
 
 `sideEffects`
 
-- false: 所有代码都没有副作用(告诉 webpack 可以安全地删除未用的 exports)
-- true: 所有代码都有副作用
-- 数组: (告诉 webpack 哪些模块有副作用，不删除), 如：`['./src/wp.js', '*.css']`
+- `false`: 所有当前模块的代码都没有副作用(告诉 webpack 可以安全地删除未用的 `exports`)
+- `true`: 所有代码都有副作用 (不常用)
+- 数组: 告诉 webpack 哪些模块有副作用，不删除, 如：`['./src/wp.js', '*.css']`; 数组中的内容可以是相对路径、绝对路径、正则表达式。
+
+---
+
+实践：src 下创建一个有副作用的模块 extend.js
+
+```js
+// 为 Number 的原型添加一个扩展方法
+Number.prototype.pad = function (size) {
+  let res = this + "";
+  while (res.length < size) {
+    res = '0' + res;
+  }
+  return res;
+}
+```
+
+如果我们引入了这个模块，那么以后我们所有对数字掉操作，都会受到影响。这就是有副作用。
+
+通过前面两步开启副作用检测(webpack.config.js)和标记当前模块没有副作用(package.json 中 sideEffects 设置为 false), 再次打包后查看 index.bundle.js 文件可以发现，
+使用的前面的引入(`import './extend'`)没有了。
+
+> 如果这段构建出来的 index.bundle.js 和教程中的结果一样，检查一下是否在 webpack.config.js 中的开发环境默认配置中添加了 `devtool: 'source-map'`。
+
+通过 `webpack serve` 命令启动服务，可以发现 css 也丢失了, `pad` 方法也报错没有这个方法。因为 `import './extend'` 就是前面说的"只引入没有导出"的代码。
+
+> 只是引入了 `'./extend'` 模块，但是没有导出"模块导出的内容". 正常的情况应该是：`import { xx } from './extend'`。
+
+如何回复正常？只需要将 package.json 中的配置改为如下即可：
+
+```json
+{
+  "sideEffects": [
+    "./src/extend.js",
+    "./src/css/**"
+  ]
+}
+```
 
 ### 3.7.缓存
 
-#### Babel 缓存
+#### 3.7.1.Babel 缓存
 
-`cacheDirectory: true` (第二次构建时，会读取之前的缓存)
+启用 Babel 缓存，只需要在 Babel 的 Options 配置中添加 `cacheDirectory: true` 即可。第二次构建时，会读取之前的缓存。
 
 ![缓存逻辑](./assets/README-1663508906900.png)
 
-#### 文件资源缓存
+初次构建，会对所有的 .js 文件进行 ES 的转译；后续构建时，只会转译修改过的 .js 文件，其他的部分就是用缓存中的内容。
 
-- 如果代码在缓存期内，代码更新后看不到实时效果
-- 方案: 将代码文件名称，设置为哈希名称，名称发生变化时，就加载最新的内容
+#### 3.7.2.文件资源缓存
+
+还可以对文件资源进行缓存。
+
+- 问题: 如果代码在缓存期内，代码更新后看不到实时效果。
+- 方案: 将代码文件名称，设置为哈希名称，名称发生变化时，就加载最新的内容。
 
 ![常规请求](./assets/README-1663508960305.png)
 
+客户端请求 a.js，服务端收到请求后，就返回 a.js.(这个过程也可以称为：响应)。
+
+存在问题：如果请求量比较大的话，比如一天 10000000 次，就会把大量的精力放在请求和响应上，造成资源的浪费。
+
+为了应对高并发，可以采取措施：可以将文件缓存到客户端一份。
 
 ![缓存请求](./assets/README-1663508979372.png)
 
+当客户端中有缓存了，后面再需要 a.js 就不需要请求服务器了，直接使用本地的 a.js 就可以了。
+
+缓存虽然解决了高并发的问题，但是如果 a.js 发生了变更，我们还是使用本地的旧的 a.js，页面上就不能实时的显示最新的结果。 
+
 ![缓存请求](./assets/README-1663509006462.png)
+
+可以在每一次文件修改后，都改一下文件的名称，比如改为 b.js。此时再需要使用 js 就需要按照正常的方式去请求 b.js 了。
 
 ![确保重新加载](./assets/README-1663509025337.png)
 
-#### Webpack 哈希值
+此时，a.js 就不再需要了。我们可以在客户端将 b.js 再缓存一份。
 
-`[hash]`(每次 Webpack 打包生成的 hash 值)
+此处修改名字的方式处于简单起见直接使用 a.js 表示旧的，b.js 表示新的。但是实际使用时，如果手动改名字的话，新的名字很容易和以前的名字重复，
+我们要确保名字永远不会和旧的文件名重复，Webpack 为此提供了一个方案：Webpack 的哈希值。
 
-`[chunkhash]`(不同 chunk 的 hash 值不同 – 同一次打包可能生成不同的 chunk)
+#### 3.7.3.Webpack 哈希值
 
-`[contenthash]` (不同内容的 hash 值不同 - 同一个 chunk 中可能有不同的内容)
+> 哈希值每次都是唯一的，永远不会重复。
+
+Webpack 的哈希值有三种类型：
+
+##### 1. `[hash]`
+
+(每次 Webpack 打包生成新的 hash 值)
+
+只要有一个文件修改了，所有打包后的文件(js, css)都会文件都会生成新的哈希。
+
+##### 2. `[chunkhash]`
+
+不同 chunk 的 hash 值不同 – 同一次打包可能生成不同的 chunk
+
+只会更改一路：如更新了 a.js 的内容, 只会更新 a.js 和 a.css 的文件名字；b.js 和 b.css 的名字不会变。
+
+##### 3. `[contenthash]`
+
+不同内容的 hash 值不同 - 同一个 chunk 中可能有不同的内容
+
+只会变更对应内容的文件名称：如更新了 a.css 的内容，只会更新 a.css 的文件名称；a.js, b.css, b.js 文件名都不会发生变更。
+
+三种类型的关系如图所示：
 
 ![WebpackHash](./assets/README-1663509125084.png)
+
+`hash` 影响所有；`chunkhash` 只影响一路；`contenthash` 只影响修改了的文件。
+
+---
+
+实践
+
+```js
+module.exports = (env, argv) =>{
+  const config =   {
+    module: {
+      rules: [
+        {
+          test: /\.m?js$/,
+          exclude: /node_modules/,
+          use: {
+            loader: 'babel-loader',
+            options: {
+              // 第二次构建的时候，会读取之前的缓存
+              cacheDirectory: true,
+            }
+          }
+        }
+      ]
+    }
+  }
+
+  return config;
+}
+```
+
+测试关闭 `cacheDirectory` 打包耗时 828 ms, 开启后耗时缩短为 634 ms。
+
+此时虽然能够缓存，但是因为文件名没有更新，不能及时更新新的内容。将输出文件名改为：
+
+```js
+filename: '[name].[hash].js'
+```
+
+> 同时还要注意 `MiniCssExtractPlugin` 中配置的 css 的输出文件，也要改为使用 hash `filename: 'css/[name].[hash].css'`
+
+此时会发现打包后的文件名会带有 hash. 随便修改一个文件后，再次进行打包，会发现所有文件名后的 hash 值都变了。
+
+使用 `chunkhash`, 会发现 `index.**` 的文件的 hash 值是一样的。这就是所谓的"一路"。改一下 about.js 的内容，再次打包，发现只有 about.xx 的 hash 值变了。
+
+再使用 `contenthash` 会发现 index.js 和 index.css 的 hash 值都不一样了。
 
 ### 3.8.模块解析(resolve)
 
@@ -1142,9 +1350,9 @@ resolve
 
 - 配置模块解析的规则
 - alias: 配置模块加载的路径别名
-- alias: {'@': resolve('src’)}
+- alias: `{'@': resolve('src’)}`
 - extensions: 引入模块时，可以省略哪些后缀
-- extensions: ['.js', '.json']
+- extensions: `['.js', '.json']`
 - <https://www.webpackjs.com/configuration/resolve/>
 
 ### 3.9.排除依赖(externals)
