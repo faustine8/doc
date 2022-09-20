@@ -222,7 +222,7 @@ var vm = new Vue({
 var vm = new Vue({
   el: '#app',
   data: {
-    content: '内容文本'
+    content: '<span>内容文本</span>'
   }
 });
 ```
@@ -513,7 +513,7 @@ var vm = new Vue({
 ```html
 <div id="app">
   <p>{{content}}</p>
-  <button v-on:clieck="content='新内容'">按钮</button>
+  <button v-on:click="content='新内容'">按钮</button>
 </div>
 ```
 
@@ -531,7 +531,7 @@ Vue.js 还为 `v-on` 指令提供了简写方式。
 ```html
 <div id="app">
   <p>{{content}}</p>
-  <button @clieck="content='新内容'">按钮</button>
+  <button @click="content='新内容'">按钮</button>
 </div>
 ```
 
@@ -542,7 +542,7 @@ Vue.js 还为 `v-on` 指令提供了简写方式。
 ```html
 <div id="app">
   <p>{{content}}</p>
-  <button v-on:clieck="fn">点击修改内容</button>
+  <button v-on:click="fn">点击修改内容</button>
 </div>
 ```
 
@@ -582,7 +582,7 @@ var vm = new Vue({
 ```html
 <div id="app">
   <p>{{content}}</p>
-  <button @clieck="fn(content, $event)">按钮</button>
+  <button @click="fn(content, $event)">按钮</button>
 </div>
 ```
 
