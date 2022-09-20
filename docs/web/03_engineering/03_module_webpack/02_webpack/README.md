@@ -1226,3 +1226,5 @@ devServer: {
 开始下一阶段前，将插件版本号改为与教程一致。
 
 删除 package-lock.json 后，使用 yarn 安装，成功。
+
+使用 `npm install --package-lock-only` 命令也可以重新生成 package-lock.json 文件。

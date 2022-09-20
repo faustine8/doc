@@ -1553,7 +1553,7 @@ import('appone/sitename').then(res => {
 # 初始化项目
 npm init -y
 # 常规操作
-npm i -D webpack webpack-cli html-webpack-plugin webpack-dev-server copy-webpack-plugin clean-webpack-plugin mini-css-extract-plugin css- loader style-loader postcss-loader autoprefixer babel-loader @babel/core @babel/preset-env
+npm i -D webpack webpack-cli html-webpack-plugin webpack-dev-server copy-webpack-plugin clean-webpack-plugin mini-css-extract-plugin css-loader style-loader postcss-loader autoprefixer babel-loader @babel/core @babel/preset-env
 ```
 
 - webpack.config.js
@@ -1562,7 +1562,7 @@ npm i -D webpack webpack-cli html-webpack-plugin webpack-dev-server copy-webpack
 
 ### 4.2.Webpack 中使用 Bootstrap
 
-<https://getbootstrap.com/docs/5.0/getting- started/webpack/>
+<https://getbootstrap.com/docs/5.0/getting-started/webpack/>
 
 ```shell
 # 安装 Bootstrap
@@ -1578,7 +1578,8 @@ npm i -D sass sass-loader
 
 ```shell
 # 安装脚手架工具
-npm install -g @vue/cli
+sudo npm i -g @vue/cli
+sudo npm i -g @vue/cli-init
 # 初始化 vue 项目
 vue init webpack projectname
 # 运行 vue 项目
@@ -1586,17 +1587,20 @@ cd projectname
 npm run dev
 ```
 
+如果安装依赖的时候报错，执行：`npm install --ignore-scripts` 安装
+
+命令行中指定的端口号，优于配置文件中指定的端口号。
+
 ### 4. Webpack 在 React 中的应用
 
 ```shell
 # 安装脚手架工具
-npm install -g create-react-app
+sudo npm install -g create-react-app
 # 初始化 React 项目
 create-react-app projectname
 # 运行 React 项目
 cd projectname
 npm start
-# 弹出 webpack 配置
+# 弹出 webpack 配置 (默认隐藏 webpack 的配置，需要执行这个命令才会显示; 执行之前注意要 Git 提交，否则会报错)
 npm run eject
 ```
-
