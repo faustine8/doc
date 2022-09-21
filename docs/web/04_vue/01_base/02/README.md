@@ -332,7 +332,7 @@ var vm = new Vue({
 视图渲染结果如下：
 
 ```html
-<p id="bo" title="示例内容">标签内容</p>
+<p id="box" title="示例内容">标签内容</p>
 ```
 
 ---
@@ -402,13 +402,36 @@ var vm = new Vue({
 });
 ```
 
-对于 `class` 绑定， Vue.js 中还提供了特殊处理方式。
+视图渲染结果为：
+
+```html
+<p class="a x">标签内容</p>
+```
+
+---
+
+对于普通的 `class` 属性，我们可以写多个值，用 `,` 分隔
+
+```html
+<p class="a b c">标签内容</p>
+```
+
+但使用 `class` 属性绑定的时候却不能直接这样写
+
+```html
+<!--这是错误的写法-->
+<p :class="cls1 cls2 cls3"></p>
+```
+
+对于 `class` 绑定， Vue.js 中还提供了特殊处理方式，允许使用使用对象结构。(用于设置多个 class 属性)
 
 ```html
 <div id="app">
   <p :class="{b: isB, c: isC, 'class-d': true}">标签内容</p>
 </div>
 ```
+
+> 对象中 key 是 class 的名字, value 是一个 bool 值, 表明对应的类名是否生效; 类名如果是横线连接的，需要使用 '' 包裹起来。
 
 ```js
 var vm = new Vue({
@@ -420,7 +443,7 @@ var vm = new Vue({
 });
 ```
 
-对于 `class` 绑定， Vue.js 中还提供了特殊处理方式。
+对于 `class` 绑定， Vue.js 中还提供了特殊处理方式，还可以绑定数组结构。
 
 ```html
 <div id="app">
@@ -441,6 +464,8 @@ var vm = new Vue({
 
 `style` 是 HTML 属性，可以通过 `v-bind` 进行绑定，并且可以与 `style` 属性共存。
 
+> 因为 `style` 的数据都是 `key:value` 的形式，所以在绑定 `style` 的时候，我们传入的基本形式就是一个对象; 
+> 对象的 `key` 就是我们要设置的样式名称, value 就是我们要设置的样式的值。
 
 ```html
 <div id="app">
@@ -448,6 +473,8 @@ var vm = new Vue({
   <p style="width:100px" :style="styleObj">标签内容</p>
 </div>
 ```
+
+> 示例中, `width:100px` 是固定的值，后续绑定的值中的 `width` 属性会覆盖掉这个相同的属性, 所以最终元素的显示宽度是 200px;
 
 ```js
 var vm = new Vue({
@@ -463,6 +490,9 @@ var vm = new Vue({
 ```
 
 当我们希望给元素绑定多个样式对象时，可以设置为数组。
+
+> 使用场景：有多个元素，他们有一部分相同的样式属性，可以将这部分样式提取出来；
+> 设置的时候就可以使用数组的形式进行设置，数组中一个对象是公共的样式，一个对象是自己特有的样式。
 
 ```html
 <div id="app">
@@ -496,12 +526,17 @@ var vm = new Vue({
 <div id="app">
   <ul>
     <li v-for="item in arr">{{item}}</li>
+    <li v-for="(item, index) in arr">内容：{{item}}, 索引：{{index}}</li>
   </ul>
   <ul>
     <li v-for="val in obj">{{val}}</li>
+    <li v-for="(val, key, index) in obj">属性值：{{val}}, 属性名: {{key}}, 索引值: {{index}}</li>
   </ul>
 </div>
 ```
+
+> 这里括号里面 val, key, index 所代表的数据与她的命名无关，与他所在的位置有关。
+> `()` 中的第一个不论叫什么名字他都代表属性值, 同样的第二个不论叫什么他都代表属性名。
 
 ```js
 var vm = new Vue({
@@ -517,9 +552,22 @@ var vm = new Vue({
 });
 ```
 
-使用 `v-for` 的同时，应始终指定唯一的 key 属性，可以提高渲染性能并避免问题。
+如果没有一个数组或者对象作为数据基础，就是想通过循环创建元素，也可以使用基于单个数值的方式：
 
-> ????
+```html
+<li v-for="(item, index) in 5">
+  这是第{{ item }}个元素，索引值为：{{ index }}
+</li>
+```
+
+---
+
+使用 `v-for` 的同时，应始终指定唯一的 `key` 属性，可以提高渲染性能并避免问题。
+
+> 因为 Vue 处于性能的考虑，会尽量少的改动页面元素达到新的页面效果，所以如果后面的 input 不跟 item 绑定的时候，item 的顺序变了，后面的 input 不会变。
+> 与 input 绑定的方式就是通过 `:key=""` 来指定，注意指定的值要始终唯一; index 就不可以，因为如果数组元素的顺序变了，他的索引也就变了。
+> 
+> 如果数组中元素的内容一样的话，最好使用对象数组的方式，使用数组中对象的 id 进行绑定。
 
 ```html
 <div id="app">
@@ -547,6 +595,10 @@ var vm = new Vue({
 });
 ```
 
+> 不能理解就记住：每个 for 循环的 item, 必须设置 key 属性, 这个 key 属性要保证唯一且始终不变。
+
+---
+
 通过 `<template>` 标签设置模板占位符，可以将部分元素或内容作为整体进行操作。
 
 ```html
@@ -557,6 +609,23 @@ var vm = new Vue({
   </template>
 </div>
 ```
+
+如果需要对两个 `<span>` 标签循环三次，又不想 `<span>` 元素外部被一个 `div` 包裹，就可以使用 `template` 标签。
+示例代码最终的效果就是：
+
+```html
+<div id="app">
+  <span>标签内容</span>
+  <span>标签内容</span>
+  <!-- ... -->
+  <span>标签内容</span>
+  <span>标签内容</span>
+</div>
+```
+
+`<template>` 标签最终并不会真正的视图标签，只是用来表示一个区域; 可以利用它对被他包裹起来的内容进行循环操作。
+
+> 需要注意：`<template>` 元素不是一个真正的元素，所以不能对他设置 `:key` 属性。
 
 #### v-show 指令
 
@@ -569,7 +638,9 @@ var vm = new Vue({
 </div>
 ```
 
-注意: `<template>` 无法使用 `v-show` 指令。
+隐藏的时候，视图页面上还是有这个元素的，只是添加了 `style="display: none;"` 属性。
+
+> 注意: `<template>` 无法使用 `v-show` 指令。
 
 #### v-if 指令
 
