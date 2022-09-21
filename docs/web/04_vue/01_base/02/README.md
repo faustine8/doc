@@ -2,7 +2,7 @@
 
 ##  Vue 实例
 
-Vue 实例是通过 Vue 函数创建的对象，是使用 Vue 功能的基础。
+Vue 实例是通过 `Vue` 函数创建的对象，是使用 Vue 功能的基础。
 
 ```js
 var vm = new Vue({
@@ -12,11 +12,15 @@ var vm = new Vue({
 
 ## 基础选项
 
+对 Vue 实例进行基础功能配置。
+
 ### el 选项
 
-- 用于选取一个 DOM 元素作为 Vue 实例的挂载目标。
+- 用于选取*一个* DOM 元素作为 Vue 实例的挂载目标。
 - 只有挂载元素内部才会被 Vue 进行处理，外部为普通 HTML 元素。
-- 代表 MVVM 中的 View 层(视图)。
+- 选中的元素代表 MVVM 中的 View 层(视图)。
+
+> 挂载目标: 需要将 Vue 实例挂载到某一个标签元素上，这个元素内部就可以使用 Vue 的功能了。
 
 值可以是 CSS 选择器格式的字符串或 HTMLElement 实例，但不能为 `<html>` 或 `<body>`。
 
@@ -33,9 +37,11 @@ var vm = new Vue({
 });
 ```
 
+> 无论使用哪种元素获取，一定要保证最后选取的是单个元素; 选取的元素不能是 `html` 和 `body` 元素。
+
 ---
 
-挂载完毕后，可以通过 `vm.$el` 进行访问。
+挂载完毕后，可以通过 `vm.$el` 访问选中的元素。
 
 ```js
 var vm = new Vue({
@@ -46,6 +52,8 @@ console.log(vm.$el);
 ```
 
 未设置 `el` 的 Vue 实例，也可以通过 `vm.$mount()` 进行挂载，参数形式与 `el` 规则相同。
+
+> 没有设置 `el` 属性的 Vue 实例不会生效，因为他没有挂载到元素上。
 
 ```js
 var vm = new Vue({});
@@ -67,8 +75,8 @@ vm.$mount('#app');
 
 注意点:
 
-- 插值表达式只能书写在标签内容区域，可以与其它内容混合。
-- 内部只能书写 JavaScript 表达式，不能书写语句。
+- 插值表达式只能书写在标签内容区域，可以与其它内容混合。(只能处理标签内容, 不能处理标签属性)
+- 内部只能书写 JavaScript 表达式，不能书写语句(否则会出现模板解析错误)。(只能写表达式，不能写函数、变量声明)
 
 ### data 选项
 
@@ -85,6 +93,8 @@ var vm = new Vue({
 
 data 中的数据可以通过 `vm.$data.数据` 或 `vm.数据` 访问。
 
+> Vue.js 将 data 内部的属性直接挂载到了 Vue 实例对象当中。
+
 ```js
 var vm = new Vue({
   el: '#app',
@@ -94,7 +104,7 @@ var vm = new Vue({
 });
 
 console.log(vm.$data.title);
-console.log(vm.title);
+console.log(vm.title); // 更常用
 ```
 
 - `data` 中的数据可以直接在视图中通过插值表达式访问。
@@ -119,8 +129,6 @@ vm.title = '新的标题内容';
 
 `data` 中存在数组时，索引操作与 `length` 操作无法自动更新视图，这时可以借助 `Vue.set()` 方法替代操作。
 
-> 这里这是什么意思？如果要调用方法修改 `data` 中的数组的时候必须要调用 `Vue.set()` 方法修改吗？
-
 ```js
 var vm = new Vue({
   el: '#app',
@@ -129,12 +137,19 @@ var vm = new Vue({
   }
 });
 
-Vue.set(vm.contentArr, 0, '生效的新内容');
+Vue.set(vm.contentArr, 0, '生效的新内容'); // 参数：要操作的数组, 索引值, 要设置的新内容
 ```
+
+> 如果 `data` 中的数据是数组时，通过索引修改数据内容 `vm.contentArr[1] = '新的内容'` 和通过 `vm.contentArr.length = 0` 将数组清空，
+> 这类通过索引操作或者需要访问 `length` 属性的操作无法自动更新视图，必须要调用 `Vue.set()` 方法修改。
+
+> 数组的其他方法调用不受影响，能够正常自动更新视图，如：`vm.contentArr.pop()`, `vm.contentArr.push('新的内容')`
 
 ### methods 选项
 
 用于存储需要在 Vue 实例中使用的函数。
+
+> 可以将一些复杂的逻辑操作设置在 methods 中，实现将视图和数据处理逻辑分离。
 
 ```html
 <div id="app">
@@ -161,17 +176,45 @@ var vm = new Vue({
 - `methods` 中的方法可以通过 `vm.方法名` 访问。
 - 方法中的 `this` 为 `vm` 实例，可以便捷的访问 `vm` 数据等功能。
 
+```js
+var vm = new Vue({
+  el: '#app',
+  data: {
+    prefix: '处理的结果为：',
+    title1: 'a-b-c-d-e',
+    title2: 'x-y-z'
+  },
+  methods: {
+    fn(value) {
+      this.fn1(); // this 代表当前 vm 实例
+      this.fn2();
+      return this.prefix + value.split('-').join('');
+    },
+    fn1() {
+      console.log('执行了 fn1 的代码');
+    },
+    fn2() {
+      console.log('执行了 fn2 的代码');
+    }
+  }
+});
+```
+
 ## 指令
 
-指令的本质就是 HTML 自定义属性
+> Vue 中最常用的功能，用于在视图中进行设值操作，可以让视图与数据进行更好的结合。
 
-Vue.js 的指令就是以 `v-` 开头的自定义属性
+指令的本质就是 HTML 自定义属性。
+
+Vue.js 的指令就是以 `v-` 开头的自定义属性。
 
 ### 内容处理
 
 ####  v-once 指令
 
-使元素内部的插值表达式只生效一次。
+使元素内部的*插值表达式*只生效一次。(视图不再随着数据的变化而变化)
+
+> 差值表达式只占元素内部内容的一部分；一个元素内部可以同时存在多个插值表达式。
 
 ```html
 <div id="app">
@@ -191,7 +234,11 @@ var vm = new Vue({
 
 ####  v-text 指令
 
-元素内容整体替换为指定纯文本数据。
+元素内容*整体替换*为指定*纯文本数据*。
+
+> 整体替换的意思是如果元素原本有内容，会使用新的内容将原本的内容覆盖掉。
+
+> 只能是纯文本，而不能生成 HTML 的解构文本。
 
 ```html
 <div id="app">
@@ -208,9 +255,11 @@ var vm = new Vue({
 });
 ```
 
+> 为什么这里 `v-text` 后面有值，而 `v-once` 后面没有呢？ 因为 `v-text` 需要用后面的值覆盖元素内部原来的内容，而 `v-once` 只需要标记一下就可以了。
+
 ####  v-html 指令
 
-元素内容整体替换为指定的 HTML 文本。
+元素内容*整体替换*为指定的 *HTML 文本*。
 
 ```html
 <div id="app">
@@ -250,7 +299,7 @@ var vm = new Vue({
 });
 ```
 
-> bind 后面那个 title 是什么意思？是标签的属性。=> `<p title='这是title属性内容'>标签内容</p>`
+> bind 后面那个 title 是什么意思？是要绑定的属性名称, `=` 后面的值是要绑定的数据。=> `<p title='这是title属性内容'>标签内容</p>`
 
 Vue.js 还为 `v-bind` 指令提供了简写方式。
 
@@ -280,7 +329,39 @@ var vm = new Vue({
 });
 ```
 
+视图渲染结果如下：
+
+```html
+<p id="bo" title="示例内容">标签内容</p>
+```
+
+---
+
+除了可以绑定这些固有属性外，还可以绑定一些自定义属性
+
+```js
+var vm = new Vue({
+  el: '#app',
+  data: {
+    attrObj: {
+      class: 'clearFix',
+      'data-title': '这是 data-title 的内容'
+    }
+  }
+});
+```
+
+视图渲染结果如下：
+
+```html
+<p data-title="这是 data-title 的内容" class="clearFix">这是 p 标签的内容</p>
+```
+
+---
+
 与插值表达式类似，`v-bind` 中也允许使用表达式。
+
+> 同时与插值表达式类似, `v-bind` 值也不允许书写语句，如：声明函数或者变量。
 
 ```html
 <div id="app">
@@ -302,6 +383,8 @@ var vm = new Vue({
 ####  Class 绑定
 
 `class` 是 HTML 属性，可以通过 `v-bind` 进行绑定，并且可以与 `class` 属性共存。
+
+> 因为本来就可以给 HTML 元素赋予多个 `class`。
 
 ```html
 <div id="app">
