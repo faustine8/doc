@@ -654,9 +654,49 @@ var vm = new Vue({
 </div>
 ```
 
+> 执行过程会从上往下依次查找, 如果条件为 false, 会继续往后找; 如果某一个条件为 true, 则执行创建视图元素并结束整轮操作，不再往后查找; 
+> 如果所有条件都为 false 时，最终就会创建 `v-else` 的元素. 这个的执行流程和 JS 是类似的。
+
+> `v-show="false"` 时视图元素会正常创建，只不过是添加了隐藏的样式; `v-if="false"` 时视图元素就直接不会创建; 
+
+> 如果需要频繁切换显示隐藏的话，使用这个指令显然是不合适的，因为他会频繁地添加和删除 DOM 元素，这个操作很费性能; 
+> 使用 `v-show` 指令就好很多，因为只需要给 DOM 元素修改 `display` 属性的值而已。
+
+---
+
 给使用 `v-if` 的同类型元素绑定不同的 `key`。
 
+> 如果 `v-if` 和 `v-else-if` 的内部，有相同元素的时候，就需要给 `v-if` 和 `v-else-if` 绑定不同的 key. 
+> (原因很简单：还是因为 Vue 处于性能考虑，在数据变动的时候尽量少改动页面导致的问题，为了解决这个问题，我们需要将 `v-if` 元素内部的元素与 `v-if` 元素绑定)
+
+```html
+<div id="app">
+  <div v-if="type==='username'" :key="'username'">
+    用户名输入框：<input type="text">
+  </div>
+  <div v-else-if :key="'email'">
+    邮箱输入框：<input type="text">
+  </div>
+</div>
+```
+
+---
+
 出于性能考虑，应避免将 `v-if` 与 `v-for` 应用于同一标签。
+
+> 因为在 Vue 中，如果 `v-if` 与 `v-for` 用在同一个标签上时，`v-for` 的优先级高于 `v-if`;
+> 如果这个时候 `v-if="false" v-for="true"`, 他就会先执行 `v-for` 循环，循环结束后再判断 `v-if="false"` 就会再删除 for 循环出来的元素，
+> 这样这个 for 循环所做的就是无用功，白白浪费了性能。
+
+所以，如果有这种需求的时候，应该让 `v-if` 在更外层。
+
+```html
+<div id="app">
+  <ul v-if="false">
+    <li v-for="item in items">{{item}}</li>
+  </ul>
+</div>
+```
 
 ### 事件处理
 
@@ -691,6 +731,8 @@ Vue.js 还为 `v-on` 指令提供了简写方式。
 
 > 总结：属性绑定简写使用 `:`, 事件绑定简写使用 `@`
 
+---
+
 事件程序代码较多时，可以在 `methods` 中设置函数，并设置为事件处理程序。
 
 ```html
@@ -714,6 +756,8 @@ var vm = new Vue({
 });
 ```
 
+---
+
 设置事件处理程序后，可以从参数中接收事件对象。
 
 ```js
@@ -730,8 +774,12 @@ var vm = new Vue({
 });
 ```
 
+---
+
 在视图(页面)中可以通过 `$event` 访问事件对象。
 
+> 在 `@click` 以及其他事件处理指令中，在视图页面调用的函数，有一个默认参数，就是 event 对象, 所以可以直接调用 `fn`, 然后在 `fn(event)` 函数的定义中就能获取到 event 对象；
+> 如果在事件处理指令中调用的函数，既要使用 event 对象还需要传入别的参数，函数声明的时候就需要 `fn(content, event)`, 调用的时候需要 `fn('content', $event)` 这样写。
 
 ```html
 <div id="app">
@@ -765,10 +813,28 @@ var vm = new Vue({
 
 首先我们来体验一下双向数据绑定的效果。
 
+```html
+<body>
+<div id="app">
+  <p>元素内容为：{{ value }}</p>
+  <input type="text" v-model="value">
+</div>
+<script>
+  var vm = new Vue({
+    el: '#app',
+    data: {
+      value: ''
+    }
+  });
+</script>
+</body>
+```
+
+可以发现 `p` 标签的内容会随着输入框的输入变化而变化; 通过 JS 代码更新数据 `vm.vlue = 100` 也会导致视图页面上的两个元素的内容发生变化。
+
 #### 输入框绑定
 
 输入框分为单行输入框 `input` 与多行输入框 `textarea`。
-
 
 ```html
 <div id="app">
@@ -804,6 +870,8 @@ var vm = new Vue({
 </div>
 ```
 
+> 将多个 `type="radio"` 的一组元素的 `v-model` 绑定为同一个值; 最终选中哪个元素，那个元素的 `value` 就会传入 `v-model` 绑定的值当中。
+
 ```js
 var vm = new Vue({
   el: '#app',
@@ -832,6 +900,13 @@ var vm = new Vue({
 </div>
 ```
 
+> 单个选项的复选框使用场景：签订不平等协议。
+
+> 单个选项的复选框和多个选项的复选框的主要区别点在于：单个选项的值是一个单值, 多个选项的复选框的值需要是一个数组(因为如果选中多个值，多个值需要同时保存)。
+
+- 单个选项的复选框，被选中后的绑定的值并不是 `<input>` 标签的 `value` 属性的值，而是 `true` 和 `false`. 表单提交时，提交的仍然是 `<input>` 标签中的 `value` 属性的值。
+- 多个选项的复选框，被选中的值需要保存在一个数组中，绑定的值是 `<input>` 标签的 `value` 属性的值。
+
 ```js
 var vm = new Vue({
   el: '#app',
@@ -857,7 +932,7 @@ var vm = new Vue({
   </select>
 
   <p>多选 select 数据为：{{value7}}</p>
-  <select v-model="value67" multiple>
+  <select v-model="value7" multiple>
     <option value="1">选项一</option>
     <option value="2">选项二</option>
     <option value="3">选项三</option>
@@ -865,6 +940,8 @@ var vm = new Vue({
 
 </div>
 ```
+
+> 多选选择框需要添加 `multiple` 属性; 选择的时候, 如果要多选需要按住 command 键.
 
 ```js
 var vm = new Vue({
@@ -893,15 +970,59 @@ v-model 指令小结
 
 用于阻止默认事件行为，相当于 `event.preventDefault()`。
 
+> 默认事件行为，如：`<a>` 标签，默认点击的时候会跳转。
+
+```html
+<a @click.prevent="fn" href="https://kaiwu.lagou.com/">链接</a>
+```
+
+这样，当点击这个 `<a>` 标签的时候, 只会执行 `fn` 函数，并不会跳转页面。
+
+还可以不执行函数，仅仅阻止默认行为：
+
+```html
+<a @click.prevent href="https://kaiwu.lagou.com/">链接</a>
+```
+
 ####  `.stop` 修饰符
 
 用于阻止事件传播，相当于 `event.stopPropagation()`。
 
+```html
+<div id="app">
+  <div @click="fn1">
+    <button @click.stop="fn2">按钮</button>
+  </div>
+</div>
+```
+
+此时点击按钮就只会触发 `fn2`, 而不会触发 `fn1`
+
+---
+
 Vue.js 中允许修饰符进行连写，例如: `@click.prevent.stop`。
+
+```html
+<div id="app">
+  <div @click="fn1">
+    <a @click.prevent.stop="fn2" href="https://kaiwu.lagou.com/">链接</a>
+  </div>
+</div>
+```
+
+此时 `<a>` 标签既不会页面跳转，也不会产生事件冒泡，触发 `fn2`.
 
 ####  `.once` 修饰符
 
 用于设置事件只会触发一次。
+
+```html
+<button @click.once="fn">按钮2</button>
+```
+
+`fn` 函数只有第一次按钮点击的时候才会执行。
+
+> 更多的修饰符内容：<https://cn.vuejs.org/guide/essentials/event-handling.html>
 
 ### 按键修饰符
 
@@ -909,19 +1030,54 @@ Vue.js 中允许修饰符进行连写，例如: `@click.prevent.stop`。
 
 按键码指的是将按键的"按键码"作为修饰符使用以标识按键的操作方式。
 
+```html
+<div id="app">
+  <input type="text" @keyup="fn">
+
+  <!-- 直接在事件后拼接 keycode 的方式 -->
+  <input type="text" @keyup.49="fn">
+
+  <!-- 使用字母的时候，一般直接拼接字母 比较直观 -->
+  <input type="text" @keyup.a="fn">
+
+  <!-- 特殊按键 推荐使用内置别名的方式 -->
+  <input type="text" @keyup.esc="fn">
+
+  <!-- 按键修饰符也可以连写。当前表示 a 或者 b 或者 c 都会触发 fn，而不是同时按 a+b+c 才触发 fn -->
+  <input type="text" @keyup.a.b.c="fn">
+</div>
+```
+
 #### 特殊按键
 
 特殊按键指的是键盘中类似 `esc`、`enter`、`delete` 等功能按键，为了更好的兼容性，应首选内置别名。
 
+> 不要使用 `@keyup` 后面拼接数字的方式，直接使用 `@keyup.esc` 更加直观，而且兼容性也更加好。
+
+更多按键修饰符详情：<https://cn.vuejs.org/guide/essentials/event-handling.html#key-modifiers>
+
 ### 系统修饰符
 
-系统按键指的是 `ctrl`、`alt`、`shift` 等按键。
+系统修饰符是用来进行"系统按键"的修饰处理操作。
+
+> 系统按键指的是 `ctrl`、`alt`、`shift` 等按键。
 
 - 单独点击系统操作符无效。
 - 系统按键通常与其他按键组合使用。
 
 #### `.ctrl` 修饰符
 
+```html
+<div id="app">
+  <!-- ctrl 的 keycode 是 17; 但是当前案例会被当成普通的按键修饰符：单独按 ctrl 或者 q 都会触发 fn 方法 -->
+  <!-- <input type="text" @keyup.17.q="fn"> -->
+
+  <!-- 这样才会被当成系统修饰符，同时按 ctrl + q 才会生效 -->
+  <input type="text" @keyup.ctrl.q="fn" v-model="inputValue">
+</div>
+```
+
+> 注意 macOS 在这里也是 control + Q, 不是使用 command + Q
 
 #### `.alt` 修饰符
 
