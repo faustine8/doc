@@ -8,11 +8,11 @@
 
 ### 自定义全局指令
 
-指的是可以被任意 Vue 实例或组件使用的指令。
+"全局指令"指的是可以被任意 Vue 实例或组件使用的指令。
 
 ```js
 Vue.directive('focus', {
-  inserted: function (el) {
+  inserted(el) { // 在形参中可以直接获取 添加了当前指令的元素
     el.focus();
   }
 });
@@ -22,6 +22,38 @@ Vue.directive('focus', {
 <div id="app">
   <input type="text" v-focus>
 </div>
+```
+
+---
+
+在 `inserted` 函数中，还可以使用 `binding` 参数接收指令的修饰符和值等信息。
+
+```html
+<input type="text" v-focus.a.b="100 + 1">
+```
+
+```js
+// 自定义全局指令
+Vue.directive('focus', {
+  inserted(el, binding) {
+    console.log(binding);
+    el.focus();
+  }
+});
+```
+
+```json
+{
+  "name": "focus",
+  "rawName": "v-focus.a.b",
+  "value": 101, // 指令值的最终计算结果
+  "expression": "100 + 1", // 指令值的表达式
+  "modifiers": {
+    "a": true, // 修饰符信息
+    "b": true
+  },
+  "def": {}
+}
 ```
 
 ### 自定义局部指令

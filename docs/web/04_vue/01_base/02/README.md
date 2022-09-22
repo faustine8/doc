@@ -1083,13 +1083,33 @@ Vue.js 中允许修饰符进行连写，例如: `@click.prevent.stop`。
 
 #### `.shift` 修饰符
 
+更多系统修饰符信息：<https://cn.vuejs.org/guide/essentials/event-handling.html#system-modifier-keys>
+
 ### 鼠标修饰符
 
 用于设置点击事件由鼠标哪个按键来完成。
 
 #### `.left` 修饰符
+
+鼠标左键点击
+
 #### `.right` 修饰符
+
+鼠标右键点击
+
 #### `.middle` 修饰符
+
+鼠标中键点击
+
+```html
+<div id="app">
+  <button @click.left="fn">按钮1</button>
+  <button @click.right="fn">按钮2</button>
+  <button @click.middle="fn">按钮3</button>
+</div>
+```
+
+> 一般使用 `@click` 就可以了，默认是使用左键点击。
 
 ### `v-model` 修饰符
 
@@ -1097,13 +1117,28 @@ Vue.js 中允许修饰符进行连写，例如: `@click.prevent.stop`。
 
 用于自动过滤用户输入内容首尾两端的空格。
 
+> 一般输入框可能会需要用到，因为用户输入的内容不可控。
+
+```html
+<input type="text" v-model.trim="inputValue">
+```
+
 #### `.lazy` 修饰符
 
 用于将 `v-model` 的触发方式由 `input` 事件触发更改为 `change` 事件触发。
 
-> input 就是获取焦点就触发; change 是内容改变才触发？
+> input 是只要输入内容就更新，即便还在输入都实时更新; change 是内容输入完毕后，失去焦点时进行内容检测，如果内容确实发生了变化，在进行数据双向绑定的数据更新。
+
+```html
+<input type="text" v-model.lazy="inputValue">
+```
+
+> 懒就懒在，内容不变就懒得动。
 
 #### `.number` 修饰符
 
 用于自动将用户输入的值转换为数值类型，如无法被 `parseFloat()` 转换，则返回原始内容。
 
+```html
+<input type="text" v-model.number="inputValue">
+```
