@@ -623,17 +623,478 @@ Vue.component('MyComponentA', {
 
 ### 子组件向父组件传值
 
+子向父传值需要通过自定义事件实现。
 
+---
+
+测试案例：商品为子组件，购物车为父组件。父组件需要统计商品个数，就需要在子组件个数变化时传值给父组件。
+
+父组件使用代码如下：
+
+```html
+<body>
+  <div id="app">
+    <h3>购物车</h3>
+    <product-item
+        v-for="product in products"
+        :key="product.id"
+        :title="product.title"
+    ></product-item>
+    <p>商品总个数为：{{ totalCount }}</p>
+  </div>
+  <script>
+    new Vue({
+      el: '#app',
+      data: {
+        products: [
+          {id: 1, title: '苹果一斤'},
+          {id: 2, title: '香蕉一根'},
+          {id: 3, title: '橙子一个'}
+        ],
+        totalCount: 0
+      }
+    });
+  </script>
+</body>
+```
+
+子组件定义如下：
+
+```js
+Vue.component('ProductItem', {
+  props: ['title'],
+  template: `
+      <div>
+      <span>商品名称： {{ title }}, 商品个数： {{ count }}</span>
+      <button @click="countIns">+1</button>
+      </div>
+    `,
+  data() {
+    return {count: 0}
+  },
+  methods: {
+    countIns() {
+      this.count++;
+    }
+  }
+});
+```
+
+当子组件的商品个数发生变化时，如何将数据传递给购物车这个父组件？
+
+子组件数据变化时，通过 `$emit()` 触发自定义事件。
+
+> `$emit()` 是 Vue 实例的方法，方法实参可以传递一个名称，可以触发指定的名称的自定义事件。
+
+```js
+Vue.component('ProductItem', {
+  // ...
+  methods: {
+    countIns() {
+      this.$emit('count-change'); // 此处只是代表"触发"这个功能，在父组件中使用子组件的时候需要在使用的时候监听这个事件
+      this.count++;
+    }
+  }
+});
+```
+
+> 自定义事件名称建议使用 kebab-case。
+
+父组件监听子组件的自定义事件，并设置处理程序。
+
+```html
+<div id="app">
+  ...
+  <product-item
+      ...
+      @count-change="totalCount++"
+  ></product-item>
+  ...
+</div>
+```
+
+总结一下代码的执行流程：点击 `+1` 按钮 => 子组件执行 `countIns` 函数，函数内容 `$emit()` 方法出发了 `count-change` 事件 => 父组件在使用子组件的时候监听了这个事件，所以触发事件监听的代码：`totalCount++` => 父组件中的 `data.totalCount` 值 +1 => 数据双向绑定导致视图页面上的 "商品总个数" 的值 +1。
+
+此时，子组件数据发生变化时，只是能够告诉父组件子组件数据发生了变化，但是父组件并不知道子组件的值变成了多少。
+那么如何让父组件知道子组件的值具体变成了多少呢？请看下一节。
+
+#### 自定义事件传值
+
+子组件触发事件时可以向父组件传值。
+
+> 简单来说就是通过 `$emit()` 方法的第二个参数，向父组件传递参数。这个参数可以是任意数据类型。
+
+```js
+Vue.component('ProductItem', {
+  template: `
+    <div>
+      <span>商品名称： {{ title }}, 商品个数： {{ count }}</span>
+      <button @click="countIns">+1</button>
+      <button @click="countIns5">+5</button>
+    </div>
+  `,
+  methods: {
+    countIns() {
+      this.$emit('count-change', 1);
+      this.count++;
+    },
+    countIns5() {
+      this.$emit('count-change', 5);
+      this.count += 5;
+    }
+  }
+});
+```
+
+父组件在监听事件时需要接收子组件传递的数据。
+
+> 简单来说就是可以直接通过 `$event` 在事件绑定函数中接收，也可以通过 `method` 上声明形参接收。
+
+接收方式一：
+
+```html
+<product-item
+    @count-change="totalCount += $event"
+></product-item>
+```
+
+接收方式二：
+
+```html
+<product-item
+    @count-change="onCountChange"
+></product-item>
+```
+
+```js
+new Vue({
+  // ...
+  methods: {
+    onCountChange(productCount) {
+      this.totalCount += productCount;
+    }
+  }
+});
+```
+
+#### 组件与 v-model
+
+`v-model` 用于组件时，需要通过 `props` 与自定义事件相结合的方式实现。
+
+```html
+<div id="app">
+  <p>输入框内容为：{{ iptValue }}</p>
+  <com-input v-model="iptValue"></com-input>
+</div>
+```
+
+```js
+new Vue({
+  el: '#app',
+  data: {
+    iptValue: ''
+  },
+  components: {
+    ComInput
+  }
+});
+```
+
+直接这样将父组件的 `iptValue` 绑定给子组件是不能绑定成功的，需要在子组件内部通过 `props` 接收处理。
+
+```js
+// 子组件
+const ComInput = {
+  props: ['value'], // 这里的名字固定，就是 value. 因为 v-model 绑定的属性就是 value, 所以此处的名字必须要写 value 才能正确接收父组件绑定的数据。
+  template: `
+    <input
+      type="text"
+      :value="value" // 前面的 value 表示当前绑定的属性叫 value; 后面的 value 表示使用的是 props 中的 value 的值
+      @input="$emit('input', event.target.value)" // 当输入框输入内容的时候，通知父组件，并将当前输入框输入的内容传递给父组件
+    >
+  `
+}
+```
+
+将处理函数定义在 `methods` 中的写法：
+
+```js
+// 子组件
+const ComInput = {
+  props: ['value'],
+  template: `<input type="text" :value="value" @input="onInput">`,
+  methods: {
+    onInput(event) {
+      this.$emit('input', event.target.value)
+    }
+  }
+}
+// 如果处理逻辑比较复杂，推荐使用这种方式。
+```
+
+所以在父组件设置的时候很简单，就和普通的输入框绑定是一样的写法，直接使用 `v-model` 就可以了；
+在子组件中要使用 `props` 接收数据，并通过 `$emit()` 将子组件的数据传递给父组件。
+
+> 其实可以理解为： `v-model="a"` 就相当于 `v-bind:value="a"`, 就是说 `v-model` 本质上也是属性绑定，只不过这个属性名固定为 `value`。
 
 ### 非父子组件传值
 
-> 如：兄弟关系，或者完全没有关系的两个组件进行通信。
+非父子组件指的是兄弟组件或完全无关的两个组件。
 
+####  兄弟组件传值
+
+兄弟组件可以通过父组件进行数据中转.
+
+> 通过父组件进行数据中转，只是兄弟组件间传值的一种实现方式。
+
+```js
+// 根实例
+new Vue({
+  el: '#app',
+  data: {
+    value: '' // 用于数据中转
+  }
+});
+```
+
+```html
+<div id="app">
+  <!--子组件内部数据变化的时候，将数据传递给父组件中的 value-->
+  <com-a @value-change="value = $event"></com-a>
+  <!--将父组件的 value 绑定给子组件的 value 属性-->
+  <com-b :value="value"></com-b>
+</div>
+```
+
+希望将 a 中的数据传递到 b 中。
+
+```js
+// 子组件A：发送数据
+Vue.component('ComA', {
+  template: `
+    <div>组件A的内容： {{ value }}
+    <button @click="$emit('value-change', value)">发送</button>
+    </div>
+  `,
+  data() {
+    return {
+      value: '这是组件A中的数据'
+    }
+  }
+});
+
+// 子组件B：接收数据
+Vue.component('ComB', {
+  props: ['value'],
+  template: `
+    <div>组件B接收到： {{ value }}</div>
+  `
+});
+```
+
+代码执行流程：点击 A 组件的 `发送` 按钮 => 通过 `$emit()` 方法触发父组件中的 `value-change` 事件 => 使用子组件的时候监听了 `value-change` 事件，会将子组件传递上来的数据赋值给父组件的 `value` => 组件 B 通过 `value` 属性绑定的父组件的 `value` 发生变化，会影响 B 组件中的 `props` 中的 `value` 的值 => 组件 B 中 `props` 的值改变会影响 B 组件中 `template` 中差值表达式使用的值。
+
+####  EventBus
+
+当组件嵌套关系复杂时，根据组件关系传值会较为繁琐。
+
+组件为了数据中转，`data` 中会存在许多与当前组件功能无关的数据。
+
+- EventBus (事件总线)是一个*独立*的*事件中心*，用于管理不同组件间的传值操作。
+- EventBus 通过一个新的 Vue 实例来管理组件传值操作，组件通过给实例注册事件、调用事件来实现数据传递。
+
+> 为什么要使用一个新的 Vue 实例来管理组件的传值操作？ 因为如果根实例(`#app`)里面功能很复杂，这个 Vue 实例就会很大，如果再因为数据中转操作去频繁操作这个对象的话，
+> 会带来很大的性能消耗；如果通过一个新的 Vue 实例，这个实例本身是空的，功能比较少，带来的性能消耗也会相对小一些。
+
+```js
+// EventBus.js
+var bus = new Vue();
+```
+
+---
+
+发送数据的组件触发 `bus` 事件，接收的组件给 `bus` 注册对应事件。
+
+以前面的购物车案例为例：
+
+首先在视图页面中引入 EventBus.js
+
+```html
+<script src="EventBus.js"></script>
+```
+
+> 注意要先引入 vue.js 再引入 EventBus.js
+
+```js
+// 商品组件
+Vue.component('ProductItem', {
+  template: `
+    <div>
+      <span>商品名称：苹果，商品个数：{{ count }}</span>
+      <button @click="countIns">+1</button>
+    </div>`,
+  data () {
+    return { count: 0 }
+  },
+  methods: {
+    countIns () {
+      // 给 bus 触发自定义事件，传递数据
+      bus.$emit('countChange', 1);
+      this.count++;
+    }
+  }
+});
+```
+
+> 接下来在需要的组件中(购物车计数器组件)，注册对自定义事件的监听，并接收数据即可。
+
+给 bus 注册对应事件通过 `$on()` 操作。
+
+```js
+// 计数组件
+Vue.component('ProductTotal', {
+  template: `<p>总个数为： {{ totalCount }}</p>`,
+  data () {
+    return { totalCount: 0 }
+  },
+  created () { // created: 实例创建完毕，可以使用 data 等功能
+    // 给 bus 注册事件监听，并接收数据
+    bus.$on('countChange', (productCount) => {
+      this.totalCount += productCount; // 箭头函数本身没有 this, 使用的是 created 函数的 this, 也就是当前组件实例
+    });
+  }
+});
+```
+
+最后创建根实例执行代码即可。
+
+```js
+new Vue({
+  el: '#app'
+});
+```
 
 ### 其他通信方式
 
+> 这里的这两种方式仅作了解。
 
+#### $root
 
+`$root` 用于访问当前组件树根实例，设置简单的 Vue 应用时可以通过此方式进行组件传值。
+
+> 通过这个属性可以直接访问根实例(`#app`), 那么就可以疯狂的往上面传值和从上面取值，这样不太利于项目的维护。
+
+```html
+<div id="app">
+  <p>父组件数据：{{ count }} </p>
+  <com-a></com-a>
+  <com-b></com-b>
+</div>
+```
+
+```js
+const ComA = {
+  template: `
+    <div>
+      组件A: {{ $root.count }} // 直接访问根实例中的数据
+      <button @click="clickFn">按钮</button>
+    </div>
+  `,
+  methods: {
+    clickFn () {
+      this.$root.count++; // 直接修改根实例中的数据
+    }
+  }
+};
+
+const ComB = {
+  template: `
+    <div>
+      组件B: {{ $root.count }}
+      <button @click="clickFn">按钮</button>
+    </div>
+  `,
+  methods: {
+    clickFn () {
+      this.$root.count++;
+    }
+  }
+};
+
+new Vue({
+  el: '#app',
+  data: { count: 0 },
+  components: {
+    ComA,
+    ComB
+  }
+});
+```
+
+组件 A 和组件 B 内部的按钮都会修改根实例内部的 `count` 属性的值。
+
+---
+
+除了 `$root` , Vue.js 中还提供了 `$parent` 与 `$children` 用于便捷访问父子组件。
+
+> Vue3 好像已经没有 `$children` 了。
+
+#### $refs
+
+`$refs` 用于获取设置了 `ref` 属性的 HTML 标签或子组件。
+
+- 给普通 HTML 标签设置 `ref` 属性，`$refs` 可以获取 DOM 对象。
+
+```html
+<div id="app">
+  <input type="text" ref="inp">
+  <button @click="fn">按钮</button>
+</div>
+```
+
+如果希望在 Vue 中对这个 DOM 元素进行操作，可以这样写：
+
+```js
+new Vue({
+  el: '#app',
+  methods: {
+    fn() {
+      this.$refs.inp.focus();
+    }
+  }
+});
+```
+
+- 给子组件设置 `ref` 属性，渲染后可通过 `$refs` 获取子组件实例。
+
+```html
+<div id="app">
+  <com-a ref="comA"></com-a>
+</div>
+```
+
+```js
+const ComA = {
+  template: `<p>组件A: {{ value }}</p>`,
+  data() {
+    return {
+      value: '这是组件 A 的数据'
+    }
+  }
+};
+
+new Vue({
+  el: '#app',
+  components: {
+    ComA
+  },
+  mounted() {
+    this.$refs.comA.value = '修改子组件数据' // 通过打印可以看出 this.$refs.comA 就是 ComA 那个组件对象
+  }
+});
+```
+
+> 注意：这个操作要到 mounted 阶段及以后操作，不能提前，比如：created 阶段就不行。
 
 ## 组件插槽
 
