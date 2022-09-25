@@ -387,13 +387,15 @@ new Vue({
 
 Prop 可以设置类型检查，这时需要将 `props` 更改为一个带有验证需求的对象，并指定对应类型。
 
+> 之前数组的方式只能单一的设置接收值的名称。因此，此处与前面最大的区别就是此次在每一个属性名后面跟了这个属性的类型。  
+
 ```js
 // 子组件
 Vue.component('MyComponentA', {
   props: {
     parStr: String,
     parArr: Array,
-    parAny: null // parAny: undefined
+    parAny: null // 父组件传过来的值可以是任意类型，此处写 null 和 undefined 都可以表示任意类型
   },
   template: `
     <div>
@@ -405,7 +407,32 @@ Vue.component('MyComponentA', {
 });
 ```
 
-> 名字能任意起吗 ?
+父组件传值方式如下：
+
+```js
+new Vue({
+  el: '#app',
+  data: {
+    str: '示例内容',
+    arr: [1, 2, 3],
+    any: '任意类型均可'
+  }
+})
+```
+
+```html
+<div id="app">
+  <my-component-a
+    :par-str="str"
+    :par-arr="arr"
+    :par-any="any"
+  ></my-component-a>
+</div>
+```
+
+> 如果父组件中传递的数据不满足类型的话，Vue.js 会警告类型出现了错误。
+
+---
 
 prop 还可以同时指定多个类型，通过数组方式保存即可。
 
@@ -422,7 +449,11 @@ Vue.component('MyComponentA', {
 });
 ```
 
+> 此处表示父组件传递过来的数据，需要是 String 或者 Number 其中一个类型。
+
 #### Props 验证
+
+在对 `props` 中的 prop 设置了类型检测后，还需要设置后续的验证的的设置的话，就需要将 prop 也设置为对象结构。
 
 - 当 prop 需要设置多种规则时，可以将 prop 的值设置为选项对象。
 - 之前的类型检测功能通过 `type` 选项设置。
@@ -460,6 +491,10 @@ Vue.component('MyComponentA', {
 });
 ```
 
+> 如果没有 `required` 属性，没有传递这个参数，仅仅是组件中这个属性没有值；此时父组件如果没有传递这个参数，Vue.js 就会报错。
+
+---
+
 `default` 用于给可选项指定默认值，当父组件未传递数据时生效。
 
 ```js
@@ -478,7 +513,12 @@ Vue.component('MyComponentA', {
 });
 ```
 
+> 如果一个属性设置了 `required` 就可以不设置 `default`, 因为他们不能同时起作用。
+
 注意: 当默认值为数组或对象时，必须为工厂函数返回的形式。
+
+> 还是因为作用域和引用传递的关系，如果不通过函数包裹，可能多个组件最终操作的是同一个数组。
+> 和组件中的 `data` 要通过函数包裹是同样的原因。
 
 ```js
 Vue.component('MyComponentA', {
@@ -498,14 +538,18 @@ Vue.component('MyComponentA', {
 });
 ```
 
+---
+
 `validator` 用于给传入的 `prop` 设置校验函数，`return` 值为 `false` 时 Vue.js 会发出警告。
+
+> 前面的检测是针对类型，或者是否传入值的检测，此处的 `validator` 是针对传入的具体内容的检测。
 
 ```js
 Vue.component('MyComponentA', {
   props: {
     parStr: {
       type: String,
-      validator: function (value) {
+      validator: function (value) { // value 就是父组件传入的值
         return value.startsWith('zmn');
       }
     }
@@ -519,6 +563,9 @@ Vue.component('MyComponentA', {
 ```
 
 注意: 验证函数中无法使用实例的 `data`、`methods` 等功能。
+
+> 因为 `prop` 的验证是在组件实例对象创建之前进行的验证，所以无法通过 `this` 使用组件中的 `data`, `methods` 等功能。
+> 通过在 `validator` 函数中打印 `this` 可以发现，在 `validator` 函数中的 `this` 其实是 `Window` 对象。
 
 #### 非 Props 属性
 
@@ -541,14 +588,38 @@ Vue.component('MyComponentA', {
 </div>
 ```
 
+因此，父组件可以直接在视图页面对子组件进行一些设置，而不需要通过 `props` 属性接收参数后，再绑定给组件的根元素。
+
+> 同时也要注意，这一规则仅适用于 `template` 中的根元素，嵌套的元素不能在视图页面使用的时候直接设置属性。
+
+---
+
 - 如果组件根元素已经存在了对应属性，则会替换组件内部的值。
 - `class` 与 `style` 是例外，当内外都设置时，属性会自动合并。
 
+```js
+// 内部设置
+Vue.component('MyComponentA', {
+  template: `<p title="原始title" class="fl" style="width: 200px;">子组件内容</p>`
+});
+```
 
+> 使用时的代码同上。此时的视图页面渲染结果就是：`style` 会层叠; `title` 会被父组件使用的地方传入的参数覆盖。
+
+---
 
 - 如果不希望继承父组件设置的属性，可以设置 `inheritAttrs: false`，但只适用于普通属性，`class` 与 `style` 不受影响。
 
+> 这个参数存在的目的就是防止父组件在使用的时候覆盖 `template` 内部设置的一些属性。
 
+```js
+Vue.component('MyComponentA', {
+  inheritAttrs: false,
+  template: `<p title="原始title" class="fl" style="width: 200px;">子组件内容</p>`
+});
+```
+
+> 添加了这个参数后，父组件中通过"非 props 属性"传入的普通数据会被忽略；但是样式和 class 仍然会产生层叠。
 
 ### 子组件向父组件传值
 
