@@ -418,6 +418,8 @@ keep-alive 组件主要用于保留组件状态或避免组件重新渲染。
 
 #### transition 组件
 
+transition 组件是用来进行"过渡效果"设置的基础组件。
+
 用于给元素和组件添加进入/离开过渡:
 
 - 条件渲染 (使用 v-if )
@@ -429,18 +431,25 @@ keep-alive 组件主要用于保留组件状态或避免组件重新渲染。
 
 组件提供了 6个 class，用于设置过渡的具体效果。
 
-进入的类名:
+进入的类名: (从隐藏到显示)
 
-- `v-enter`
-- `v-enter-to`
-- `v-enter-active`
+- `v-enter` 入场前 (还没有被显示的时候)
+- `v-enter-to` 入场完毕后 (最终显示完全的状态, 此时动画已经结束了)
+- `v-enter-active` 入场过程的控制 (过渡动画, 过渡动画持续的时间等)
 
-离开的类名:
+离开的类名: (从显示到隐藏)
 
-- `v-leave`
-- `v-leave-to`
-- `v-leave-active`
+- `v-leave` 离场前
+- `v-leave-to` 离场以后
+- `v-leave-active` 离场过程控制
 
+> 通常 `v-enter-to` 和 `v-leave` 都不用写，因为这两个一般都用他的默认显示状态即可。
+
+---
+
+使用步骤： 总体分两步
+
+1. 找到需要设置过渡的元素，然后使用 `<transition>` 标签包裹起来
 
 ```html
 <transition>
@@ -448,8 +457,10 @@ keep-alive 组件主要用于保留组件状态或避免组件重新渲染。
 </transition>
 ```
 
+2. 通过指定类名设置样式。
+
 ```css
-.v-enter-active, v-leave-active {
+.v-enter-active, .v-leave-active {
   transition: all .5s;
 }
 .v-enter, .v-leave-to {
@@ -467,7 +478,11 @@ keep-alive 组件主要用于保留组件状态或避免组件重新渲染。
 - `demo-leave`
 - ...
 
+---
+
 通过 `appear` 属性，可以让组件在初始渲染时实现过渡。
+
+> 初次渲染的过渡动画。
 
 ```html
 <transition appear>
@@ -477,26 +492,63 @@ keep-alive 组件主要用于保留组件状态或避免组件重新渲染。
 
 #### 自定义过渡类名
 
+自定义过渡类名是指自定义的，用于设置过渡操作的类名。
+
 自定义类名比普通类名优先级更高，在使用第三方 CSS 动画库时非常有用。
 
 用于设置自定义过渡类名的属性如下:
 
-- `enter-class`
-- `enter-active-class`
-- `enter-to-class`
+> 这些属性可以直接设置给 `<transition>` 这个组件。
+
+- `enter-class` 入场状态的类名
+- `enter-active-class` 入场控制的类名
+- `enter-to-class` 入场后的类名
 - `leave-class`
 - `leave-active-class` 
 - `leave-to-class`
 
-- `appear-class`
-- `appear-to-class`
-- `appear-active-class`
+- `appear-class` 设置初始显示的初始状态
+- `appear-to-class` 设置初始显示的最终状态
+- `appear-active-class` 设置初始显示的过渡过程类
+
+---
 
 Animate.css 是一个第三方 CSS 动画库，通过设置类名来给元素添加各种动画效果。
 
+```html
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+</head>
+<body>
+  <div id="app">
+    <button @click="show = !show">按钮</button>
+
+    <!-- 通过自定义过渡类名设置，给组件添加第三方动画库的类名效果 -->
+    <transition
+      enter-active-class="animate__bounceInDown"
+      leave-active-class="animate__bounceOutDown"
+    >
+      <!-- 必须给要使用动画的元素设置基础类名 animate__animated -->
+      <p 
+        v-if="show"
+        class="animate__animated"  
+      >hello world</p>
+    </transition>
+  </div>
+</body>
+</html>
+```
+
+从 4.x 版本开始给所有的类添加了 `animate__` 前缀；官方给出了兼容性文件 `animate.compat.css`，新的项目推荐使用完整的版本。
+
+兼容文件地址：`"https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.0.0/animate.compat.css"`
+
+如果使用了兼容版本，就可以不添加 `animate__` 前缀，但是容易与其他的类名冲突。
+
 使用注意:
 
-- `animate__` 前缀与 compat 版本
+- `animate__` 前缀与 `compat` 版本
 - 基础类名 `animated`
 
 #### transition-group 组件
