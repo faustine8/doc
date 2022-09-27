@@ -328,7 +328,7 @@ new Vue({
 </div>
 ```
 
-> `:is` 属性指定的谁，谁就显示。`:is` 指定的内容是一个组件对象。
+> `:is` 属性指定的谁，谁就显示(就是将 `<component>` 标签替换成整个组件)。`:is` 指定的内容是一个组件对象。
 
 ---
 
@@ -346,7 +346,11 @@ const ComC = { template: `<div>C组件的内容: <input type="text"></div>` };
 
 ### keep-alive 组件
 
-主要用于保留组件状态或避免组件重新渲染。
+> 前面讲通过动态组件切换的时候，会创建新的组件实例，会卸载的组件的数据也无法保留，keep-alive 组件就是解决这个问题的，让被卸载的组价活下去。
+
+keep-alive 组件主要用于保留组件状态或避免组件重新渲染。
+
+如果希望动态组件在切换时，不进行重新渲染，可以通过 `<keep-alive>` 包裹。代码如下：
 
 ```html
 <keep-alive>
@@ -354,7 +358,11 @@ const ComC = { template: `<div>C组件的内容: <input type="text"></div>` };
 </keep-alive>
 ```
 
-`include` 属性用于指定哪些组件会被缓存，具有多种设置方式。
+> 通过 `<keep-alive>` 标签包围的动态组件，在切换时，就不会被卸载移除；下一次再切换回渲染过的页面时，会读取缓存中的结果。
+
+---
+
+- `include` 属性用于指定哪些组件会被缓存，具有多种设置方式。
 
 ```html
 <keep-alive include="ComA,ComB,ComC">
@@ -362,33 +370,47 @@ const ComC = { template: `<div>C组件的内容: <input type="text"></div>` };
 </keep-alive>
 ```
 
+> 注意：`include` 这种写法的时候，每个组件名之间不要加空格。
+
 ```html
-<keep-alive include="['ComA','ComB','ComC']">
+<keep-alive :include="['ComA','ComB','ComC']">
   <component :is="currentCom"></component>
 </keep-alive>
 ```
 
+> 通过 `v-bind:include` 的方式写的时候，可以使用数组、正则。
+
 ```html
-<keep-alive include="/Com[ABC]/">
+<keep-alive :include="/Com[ABC]/">
   <component :is="currentCom"></component>
 </keep-alive>
 ```
 
-`exclude` 属性用于指定哪些组件不会被缓存。
+---
+
+- `exclude` 属性用于指定哪些组件不会被缓存。
 
 ```html
-<keep-alive exclude="ComD/">
+<keep-alive exclude="ComD">
   <component :is="currentCom"></component>
 </keep-alive>
 ```
 
-`max` 属性用于设置最大缓存个数。
+只有 `exclude` 指定的组件不背缓存，其他的组件都会被缓存。
+
+指定多个排除组件的时候也和 `include` 一样有三种书写方式。
+
+---
+
+- `max` 属性用于设置最大缓存个数。
 
 ```html
 <keep-alive max="5">
   <component :is="currentCom"></component>
 </keep-alive>
 ```
+
+也就是只会缓存最近操作的 `max` 个动态组件，用于动态组件的选项比较多的情况。
 
 ### 过渡组件
 
