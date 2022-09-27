@@ -54,6 +54,11 @@ Vue.component('com-a', {
 </div>
 ```
 
+添加了 `<slot>` 标签之后，可以在组件标签内部添加任意的内容，这些内容最终会替换掉模板中的 `<slot>` 标签。
+在标签内部可以写任意的文本内容，既可以是普通文本也可以是 HTML 标签。
+
+---
+
 需要注意模板内容的渲染位置:
 
 ```html
@@ -64,6 +69,10 @@ Vue.component('com-a', {
   </com-a>
 </div>
 ```
+
+> 为什么只能访问父组件的数据？ 因为当前代码就是写在父组件当中的。
+
+在父组件的视图模板中，只能使用父组件的数据，不能访问子组件内部的数据。
 
 ```js
 new Vue({
@@ -91,6 +100,8 @@ const ComA = {
 }
 ```
 
+---
+
 我们可以在 `<slot>` 中为插槽设置默认值，也称为后备内容。
 
 ```js
@@ -100,12 +111,7 @@ const ComA = {
       <p>组件 A: </p>
       <slot>这是默认文本</slot>
     </div>
-  `,
-  data() {
-    return {
-      value: '子组件数据'
-    }
-  }
+  `
 }
 ```
 
@@ -120,6 +126,8 @@ const ComA = {
 
 如果组件中有多个位置需要设置插槽，据需要给 `<slot>` 设置 `name`，称为具名插槽。
 
+子组件的视图结构如下：
+
 ```html
 <div class="container">
   <header>
@@ -133,6 +141,10 @@ const ComA = {
   </footer>
 </div>
 ```
+
+> `<slot>` 没有写名字的时候，默认名字是 `default`.
+
+在父组件中使用如下：
 
 ```html
 <com-a>
@@ -149,6 +161,12 @@ const ComA = {
 </com-a>
 ```
 
+> `v-slot` 指令只能在 `<template>` 标签中使用。
+
+---
+
+默认的 `<slot>` 也可以通过如下方式简写: `default` 可以不通过 `<template>` 标签进行指定。
+
 ```html
 <com-a>
   <template v-slot:header>
@@ -163,6 +181,10 @@ const ComA = {
   </template>
 </com-a>
 ```
+
+> 所有没有被 `<template v-slot:xx>` 包裹的内容或者标签结构，最终都会被指定为 `default` 插槽的内容。
+
+`v-slot:` 指令还可以简写为 `#`, 示例代码如下：
 
 ```html
 <com-a>
@@ -190,12 +212,13 @@ const ComA = {
   template: `
     <div>
       <p>组件 A:</p>
-      <slot :value="value">这是默认文本</slot>
+      <slot :value="value" :num="num">这是默认文本</slot>
     </div>
   `,
   data() {
     return {
-      value: '子组件数据'
+      value: '子组件数据',
+      num: 100
     }
   }
 }
@@ -213,6 +236,12 @@ const ComA = {
 </div>
 ```
 
+> `v-slot:default` 代表的是接收默认插槽的数据; 通过后面 dataObj 接收的是所有插槽 prop 的数据。
+
+> 如果在子组件中绑定了多个值，最终都可以通过 dataObj 这一个对象接收到所有的数据；以当前为例，dataObj 接收的数据为 `{value: '子组件数据', num: 100}`。
+
+---
+
 如果只存在默认插槽，同时又需要接收数据，可以进行简写:
 
 ```html
@@ -223,6 +252,8 @@ const ComA = {
 </div>
 ```
 
+> 如果只存在默认插槽，可以省略 `<template>` 标签，直接将 `v-slot` 指令放在组件标签中。
+
 ```html
 <div id="app">
   <com-a v-slot="dataObj">
@@ -230,6 +261,12 @@ const ComA = {
   </com-a>
 </div>
 ```
+
+> `v-slot:default` 也可以进一步简化为 `v-slot`
+
+> 前面说 `v-slot:default` 可以简化为 `#default`, 现在又说 `v-slot:default` 可以简化为 `v-slot`, 但是 `v-slot:default` 绝对不能超级简化为 `#`。 
+
+---
 
 还可以通过 ES6 的解构操作进行数据接收。
 
@@ -241,6 +278,8 @@ const ComA = {
 </div>
 ```
 
+> 通过 `v-slot` 接收的 dataObj 也可以通过对象解构的方式，直接获取传递过来的所有数据。
+
 ## 内置组件
 
 ### 动态组件
@@ -248,6 +287,8 @@ const ComA = {
 动态组件适用于多个组件频繁切换的处理。
 
 `<component>` 用于将一个'元组件'渲染为动态组件，以 `is` 属性值决定渲染哪个组件。
+
+> 元组件就是指普通的组件。
 
 ```html
 <div id="app">
@@ -287,13 +328,21 @@ new Vue({
 </div>
 ```
 
+> `:is` 属性指定的谁，谁就显示。`:is` 指定的内容是一个组件对象。
+
+---
+
 `is` 属性会在每次切换组件时，Vue 都会创建一个新的组件实例。
+
+> 组件 A 切换到组件 B: 卸载组件 A => 创建组件 B => 挂载组件 B
 
 ```js
 const ComA = { template: `<div>A组件的内容: <input type="text"></div>` };
 const ComB = { template: `<div>B组件的内容: <input type="text"></div>` };
 const ComC = { template: `<div>C组件的内容: <input type="text"></div>` };
 ```
+
+> 通过输入框的状态可以发现，输入框的数据是无法被保留的。
 
 ### keep-alive 组件
 
