@@ -301,6 +301,13 @@ var vm = new Vue({
 });
 ```
 
+---
+
+通过打印输出 Vue 对象可以看出，添加了VueRouter 之后，Vue 对象也多了一些 router 相关的属性：
+
+- `$route`: 路由规则对象，存储了与当前路由相关的一些数据
+- `$router`: 进行路由操作的功能对象
+
 #### 命名视图
 
 如果导航后，希望同时在同级展示多个视图(组件)，这时就需要进行命名视图。
@@ -309,11 +316,13 @@ var vm = new Vue({
 <div id="app">
   <router-link to="/">首页</router-link>
   <router-link to="/user">用户</router-link>
-  
+
   <router-view name="sidebar"></router-view>
   <router-view></router-view>
 </div>
 ```
+
+> 当有多个 `<router-view>` 的时候，至多只能有一个可以是没有名称的; 没有名称的这个 `<router-view>` 有一个默认的名字叫 `default`.
 
 路由中通过 `components` 属性进行设置不同视图的对应组件。
 
@@ -325,13 +334,15 @@ var SideBar = { template: `<div>这是侧边栏功能</div>` }
 var routes = [
   {
     path: '/',
-    component: {
+    components: {
       sidebar: SideBar,
       default: Index
     }
   }
 ]
 ```
+
+> `components` 的值一个键值对的数据结构，key 是 `<router-view>` 的 `name`, value 是对应的组件的选项对象。
 
 ### 动态路由
 
@@ -376,18 +387,49 @@ var User = {
 
 #### 侦听路由参数
 
+> 如果动态路由的时候，仅仅是参数的变化，组件的实例虽然看起来在切换，但其实大部分的功能会被复用，而不是销毁组件实例再重建。
+> 这是由于 Vue 考虑到渲染效率的问题，比起销毁再重建，复用显得更加高效。
+> 由于大部分组件都是在复用，所以生命周期钩子就不会再重新调用了，那也就意味着我们在进行动态路由切换时，我们无法监控到路由的参数变化。
+
 如果要响应路由的参数变化，可以通过 watch 监听 `$route`。
 
-> 这里是什么意思？
+> 路由参数变化是什么意思? 路由参数指的是前面动态路由的路径参数; 响应他的变化指的是我们在路由的组件中要根据不同的路径参数，执行不同的操作。
 
 ```js
 var User = {
   template: `<div>这是用户 {{ $route.params.id }} 的功能</div>`,
   watch: {
-    $route (route) {
+    // $route 是 Vue 实例内容的属性
+    $route (route) { // route 参数就是最新的、变化后的路由信息; 通过这个最新的 route 对象，我们就可以从中获取到我们想要的数据了。
       console.log(route);
     }
   }
+}
+```
+
+---
+
+验证：动态路由时，路由切换只是数据(`{{ $route.params.id }}` 这部分内容)的变化，不会重新创建和销毁实例？
+
+可以通过在组件后面添加一个 `<input>` 输入框，在里面输入内容，切换后发现输入框的内容并没有发生变化。
+
+```js
+var User = {
+  template: `
+    <div>
+      这是用户 {{ $route.params.id }} 的功能
+      <input type="text">
+    </div>
+  `
+}
+```
+
+同样可以在组件中添加一个生命周期的钩子函数，点击按钮动态路由切换组件，也会发现这个生命周期的函数只会执行一次。
+
+```js
+var User = {
+  template: `...`,
+  created() { console.log('创建了组件的实例'); }
 }
 ```
 
