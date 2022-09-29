@@ -8,6 +8,8 @@ SPA (Single Page Application) 单页面应用程序，简称单页应用。
 
 指的是网站的 "所有" 功能都在单个页面中进行呈现。
 
+> 传统网站就是多页面，如电商网站。
+
 具有代表性的有后台管理系统、移动端、小程序等。
 
 优点:
@@ -24,13 +26,25 @@ SPA (Single Page Application) 单页面应用程序，简称单页应用。
 
 ## 前端路由
 
+> 路由其实指的是一种点对点的规则；后端路由指的是不同接口与处理函数之间的映射关系。
+
 前端路由，指的是 URL 与内容间的映射关系。
 
 URL、内容、映射关系。
 
 ###  Hash 方式
 
-通过 `hashchange` 事件监听 `hash` 变化，并进行网页内容更新。
+通过 `hashchange` 事件，监听 `hash` 变化，并进行网页内容更新。
+
+> 就是改 `href=#/...` 中 `#` 后面的部分；其实借用的是 `#` 锚点链接会进行内容跳转但是不会进行页面跳转的特性。 
+
+> 浏览器中的 `location.hash` 中存储了锚点的值，这个值称为 hash. 点击了锚点链接之后，会触发 `hashchange` 事件，因为 `location.hash` 被赋予了锚点链接中的 `href` 中设置的新值。
+
+> 特点就是 URL 后面存在 `#` 号。
+
+---
+
+演示：
 
 ```html
 <body>
@@ -45,10 +59,14 @@ URL、内容、映射关系。
 </body>
 ```
 
+> `#` 是设置 hash 值的标记；后面的内容就是 hash 值的具体的内容。
+
 ```js
 window.onhashchange = function () {
+  // 获取 url 中的 hash
   var hash = location.hash.replace('#', '');
   var str = ''
+  // 根据不同的 hash 值，更改网页内容
   switch (hash) {
     case '/':
       str = '这是首页功能';
@@ -67,20 +85,29 @@ window.onhashchange = function () {
 封装以备复用。
 
 ```js
+// 准备对象用于封装 hash 功能
 var router = {
+  // 路由存储位置：保存了 url 与内容处理函数的对应关系
   routes: {},
+  // 定义路由规则的方法
   route: function (path, callback) {
-    this.route[path] = callback;
+    this.routes[path] = callback;
   },
+  // 初始化路由的方法
   init: function () {
     var that = this;
     window.onhashchange = function () {
+      // 当 hash 改变，我们需要得到当前新的 hash
       var hash = location.hash.replace('#', '');
+      // 根据 hash 触发 routes 中存储的对应的 callback
       that.routes[hash] && that.routes[hash]();
     };
   }
 };
 ```
+
+> 为什么要在这里写 `var that = this` ?
+> 在事件中，`this` 指向的是 window 对象，所以如果要 `this` 能够找到 router 对象，可以通过 `that` 将 `this` 的指向保存起来。
 
 ```js
 var container = document.getElementById('container');
