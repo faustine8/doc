@@ -150,22 +150,24 @@ History 方式采用 HTML5 提供的新功能实现前端路由。
 
 在操作时需要通过 `history.pushState()` 变更 URL 并执行对应操作。
 
+> 调用 `history.pushState()` 方法可以传入一个地址，就可以将传入的这个地址设置当前浏览器页面的 URL，在更改浏览器上的 URL 地址的同时并不会进行页面跳转操作。
+
+> 简单讲就是浏览器访问的页面变了，但是并没有开一个新的浏览器标签页。
 
 ```js
 var router = {
   routes: {},
-  route: function (path, callback) {
+  route(path, callback) {
     this.route[path] = callback;
   },
-  init: function () {
-    var that = this;
-    window.onhashchange = function () {
-      history.pushState(null, null, path);
-      that.routes[path] && that.routes[path]();
-    };
+  go(path) { // 用于触发指定路径的路由
+    history.pushState(null, null, path); // 更改 URL
+    this.routes[path] && this.routes[path](); // 调用对应路径的回调函数
   }
 };
 ```
+
+> `history.pushState()` 方法，参数一：与当前路径相关的状态对象(就是希望保存的一些数据);参数二：标题(浏览器基本不支持);参数三:希望修改成的 URL 地址。
 
 ```js
 var links = document.querySelectorAll('a');
@@ -174,8 +176,8 @@ links.forEach(function (ele) {
   ele.onclick = function (e) {
     var path = e.target.getAttribute('href');
     // 调用路由
-    router.go(path);
-    return false;
+    router.go(path); // 将当前路由跳转到对应的 path 上
+    return false; // 阻止 <a> 标签的默认跳转效果
   }
 })
 ```
@@ -193,10 +195,12 @@ router.route('/user', function () {
 });
 ```
 
+---
+
 前进后退功能，首先需要在更改 `url` 时保存路由标记。
 
 ```js
-go: function (path) {
+go(path) {
   history.pushState({ path: path }, null, path);
   ...
 }
@@ -204,15 +208,23 @@ go: function (path) {
 
 通过 `popstate` 事件监听前进后退按钮操作，并检测 `state`。
 
+> 问: 这个 `popstate` 到底监听的是前进还是后退呢？答: 前进和后退都会触发他; 我们其实不需要关心他到底是监听的前进还是后退,反正只要通过"前进/后退"按钮访问到了一个URL,就能够通过 `e.state` 获取到之前通过 `pushState()` 方法的第一个参数保存的数据。
+
 ```js
-init: function () {
+// router 对象中
+init() { // 设置初始化方法，用来检测前进后退按钮的功能
   var that = this;
+  window.addEventListener('popstate', function (e) {
+    var path = e.state ? e.state.path : '/';
+    that.routes[path] && that.routes[path]();
+  });
 }
 ```
 
 调用初始化方法监听前进后退操作并处理。
 
 ```js
+// 页面加载的时候直接调用
 router.init();
 ```
 
@@ -228,7 +240,7 @@ Vue Router 是 Vue.js 官方的路由管理器，让构建单页面应用变得�
 - 指定版本: <https://unpkg.com/vue-router@3.4.9/dist/vue-router.js>
 
 ```shell
-# npm
+# npm 安装
 npm install vue-router
 ```
 
@@ -236,9 +248,11 @@ Vue Router 提供了用于进行路由设置的组件 `<router-link>` 与 `<rout
 
 ```html
 <div id="app">
+  <!--router-link 用于设置跳转链接-->
   <router-link to="/">首页</router-link>
   <router-link to="/category">分类</router-link>
   <router-link to="/user">用户</router-link>
+  <!--router-view 用于内容切换的显示区域-->
   <router-view></router-view>
 </div>
 ```
