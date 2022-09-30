@@ -373,7 +373,7 @@ var routes = [
 </div>
 ```
 
-`:` 部分对应的信息称为路径参数，存储在 `vm.$route.params` 中。
+`:` 部分对应的信息称为*路径参数*，存储在 `vm.$route.params` 中。
 
 ```js
 var User = {
@@ -435,6 +435,9 @@ var User = {
 
 #### 路由传参处理
 
+> 参数如果是由父组件传递或者通过其他组件传递，使用的时候是使用的 `$route.params.id` 来操作，如果变更了那就不好修改了。如果希望将组件应用在任意位置的话，需要进行解耦。
+> (如果确实组件需要使用在多个地方的时候，才需要处理)。
+
 这里通过路由的 `props` 设置数据，并通过组件 `props` 接收。
 
 ```js
@@ -446,7 +449,7 @@ var routes = [
   {
     path: '/category/:id',
     component: Category,
-    props: true
+    props: true // 本次参数的传递不再由路由直接传递给组件，同时子组件也不再通过 $route.params 来接收了，而是通过 props 来传递。(也就是将 $route.params 的值传递给了 props)
   }
 ]
 ```
@@ -455,13 +458,23 @@ var routes = [
 var User = {
   template: `<div>这是用户 {{ $route.params.id }} 的功能</div>`
 }
+// 组件内部的接收方式也要做响应的调整
 var Category = {
-  props: ['id'],
-  template: `<div>这是 {{ id }} 的功能</div>`
+  props: ['id'], // 此处的通过 props 接收参数; 数组中的 id 名字要和 path 中 : 后面的名字保持一致
+  template: `<div>这是 {{ id }} 的功能</div>` // props 中的数据可以像 data 中的数据一样使用了
 }
 ```
 
-包含多个命名视图时，需要将路由的 `props` 设置为对象。
+在 `Category` 组件中，可以像使用普通数据一样使用 `id` 数据，可以不用 `$route.params.id` 的方式使用 `id` 数据。
+这样实现了我只管在模板中使用这个数据，而不需要关系这个数据到底是通过路由传递进来的还是通过父子组件传递进来的，这样实现了解耦。
+
+> 以前为什么耦合？ `$route.params.id` 这种方式要使用 id 必须要通过路由的方式传进来，否则就取不到。也就是"数据和数据的传递方式"耦合了。
+
+---
+
+包含多个命名视图时，需要将路由(`routes`)的 `props` 设置为对象。(属性名和路由的 `components` 对象的属性名保持一致，属性值为是否开启使用 `props` 接收参数)
+
+> 包含多个命名视图：指页面中有多个 `<router-view>` 标签。
 
 ```js
 var SideBar = { template: `<div>这是侧边栏功能</div>` }
@@ -469,19 +482,21 @@ var SideBar = { template: `<div>这是侧边栏功能</div>` }
 var routes = [
   {
     path: '/category/:id',
-    component: {
-      sidebar: SideBar,
+    components: {
+      sidebar: SideBar, // name="sidebar" 的 <router-view> 标签所对应的组件是 SideBar 这个组件
       default: Category
     },
     props: {
-      sidebar: false, // 这里的 sidebar 对应的是 router-view 中的 name
-      default: true
+      sidebar: false, // name="sidebar" 的 <router-view> 标签所对应的组件，不需要使用 props 传递路径参数. (默认值就是 false, 如果不需要使用 props 接收参数，也可以不写) // 这里的 sidebar 对应的是 router-view 中的 name 
+      default: true // 默认组件开启使用 props 接收路径参数(注意：需要在组件中使用 props 属性接收参数)
     }
   }
 ]
 ```
 
-如果希望设置静态数据，可将 `props` 中的某个组件对应的选项设置为对象，内部属性会绑定给组件的 `props`。
+---
+
+如果希望设置静态数据，可将路由的 `props` 的某个组件对应的选项值设置为对象，这个对象内部属性就会绑定给子组件的 `props` 属性。
 
 ```js
 var SideBar2 = {
@@ -492,15 +507,15 @@ var SideBar2 = {
 var routes = [
   {
     path: '/category/:id',
-    component: {
+    components: {
       sidebar: SideBar,
       sidebar2: SideBar2,
       default: Category
     },
     props: {
-      sidebar: false, // 这里的 sidebar 对应的是 router-view 中的 name
-      sidebar2: { a: '状态1', b: '状态2' },
-      default: true
+      sidebar: false,
+      sidebar2: { a: '状态1', b: '状态2' }, // 直接传递固定的参数
+      default: true // 
     }
   }
 ]
@@ -513,6 +528,39 @@ var routes = [
 使用 `children` 来进行嵌套路由中的子路由设置。
 
 ```js
+var User = {
+  template: `
+        <div>
+          <h3>这是 User 组件的功能</h3>
+          <router-link to="/user/hobby">爱好功能</router-link>
+          <router-link to="/user/info">用户信息</router-link>
+          <router-view></router-view>
+        </div>
+      `
+};
+
+var UserHobby = {
+  template: `<div> UserHobby 组件</div>`
+};
+
+var UserInfo = {
+  template: `
+        <div> 
+          UserInfo 组件
+          <router-link to="/user/info/school">学校信息</router-link>
+          <router-link to="/user/info/age">年龄信息</router-link>
+          <router-view></router-view>
+        </div>`
+};
+
+var UserInfoAge = {
+  template: `<div> UserInfoAge 组件</div>`
+};
+
+var UserInfoSchool = {
+  template: `<div> UserInfoSchool 组件</div>`
+};
+
 var routes = [
   {
     path: '/user',
@@ -543,7 +591,7 @@ var routes = [
 
 ### 编程式导航
 
-编程式导航，指的是通过方法设置导航。
+编程式导航，指的是通过调用方法的方式设置导航。
 
 `router.push()` 用来导航到一个新 URL。
 
@@ -555,11 +603,19 @@ vm.$router.push({ path: '/user/123' });
 
 `<router-link>` 的 `to` 属性使用绑定方式时也可属性对象结构。
 
+> 注意：之前的 to 是普通的标签属性，此处要使用 `v-bind:to` 绑定的方式; 
+
 ```html
 <router-link :to="{ path: '/user/10' }">用户10</router-link>
 ```
 
+> 使用属性绑定的方式，属性值可以和 `routes` 中的对象的结构一样; 此时点击这个 `<router-link>` 标签时，内部会调用调用 `$router.push()` 方法来导航到一个新的 URL。
+
+> 注意：这里使用属性绑定设置路由的 URL，是为了能够在 to 属性中传入对象，可以传入更多的值；并不能替代 `routes`, `routes` 还是要写。 
+
 #### 命名路由
+
+> 当路由的地址比较长的时候，比如嵌套路由的时候，这时候通过命名处理是比较方便的。
 
 设置路由时添加 `name` 属性。
 
@@ -577,13 +633,21 @@ var routes = [
 ]
 ```
 
+> 命名路由就是在 `routes` 中各一个路由对象添加一个 name 属性; 在使用 `push` 方法进行路由跳转的时候，就可以直接使用这个 `name`, 而不需要写一个很长的 `path`.
+
 在 `push()` 中通过 `name` 导航到对应路由，参数通过 `params` 设置。
 
 ```js
 vm.$router.push({ name: 'school', params: { id: 20, demo: '其他数据' }});
 ```
 
+> `params` 用来设置动态路由的参数，他只能和 `name` 搭配使用; 使用 path 的时候，必须使用完整的具有完整参数的 URL, 不可以搭配 params 参数使用
+
+> `params` 中可以传入任意多的参数，都可以通过 `$route.params` 获取到; 路径参数上只会取自己需要的。
+
 也可以在 `<router-link>` 中使用。
+
+> 在 `<router-link>` 中直接使用的时候，需要使用属性绑定的方式才能够传递 `name` 属性。(因为属性绑定的方式底层最终是调用的 push 方法)
 
 ```html
 <router-link :to="{ name: 'school', params: { id: 1 }}">用户学校</router-link>
@@ -594,6 +658,8 @@ vm.$router.push({ name: 'school', params: { id: 20, demo: '其他数据' }});
 ## 其他功能
 
 ### 重定向
+
+> 重定向是指：当我们通过 VueRouter 访问 url1 的时候,实际上访问到了 url2,并匹配到了对应的路由。
 
 示例如下:
 
@@ -608,15 +674,22 @@ var routes = [
     component: Category
   },
   {
-    path: '/category',
+    path: '/category', // 不正确的访问地址，重定向到首页
     redirect: '/'
   }
 ]
 ```
 
-> 重定向与跳转的区分 ？
+比如: 我们要访问属性组件的时候，我们没有带 id 实际上就访问到了 `/category`, 这个 path 又被重定向到了 `/`, 所以我们实际上就访问到了 `/`.
+
+> 重定向与跳转的区分 ？答：这是 Java 后端远古时期需要区分的概念，前端现在基本上都是跳转，不需要可以区分这两个概念了。
 
 ### 别名
+
+别名是一种美化路由的方式。
+
+当用户在访问 url1 的时候，url1 可能是一个别名，实际访问的 url 是 url2; 但是用户访问的这个值就叫 url1, 地址栏中显示的也是 url1,
+这时我们可以把 url1 设置的简单一些, 这样看起来就像是访问了一个比较简短的地址。
 
 示例如下：
 
@@ -626,35 +699,73 @@ var routes = [
     path: '/user/:id/info/school/intro/:date',
     name: 'school',
     component: School,
-    alias: '/:id/:date'
+    alias: '/:id/:date' // 设置别名, 用户访问的时候可以直接使用这个结构访问
   }
 ]
 ```
 
 ```html
+<!--访问别名的两种方式-->
 <router-link :to="{ name: 'school', params: { id: 1, date: 0101 } }">用户学校</router-link>
 <router-link to="/10/0612">用户学校</router-link>
 ```
 
+> 用户写的很短，实际上在内部访问的是这个很长的 url
+
+> 个人想法：第一种方式地址栏并不会显示缩短后的地址；第二种方式感觉又太容易跟别的 url 混淆了。感觉作用不大。
+
 ### 导航守卫
 
+> 当导航的时候，也就是路由发生改变的时候，我们可以通过跳转或者取消的方式进行守卫的处理。
+
+例如一个网站中存在很多的路由，某些路由需要用户登陆或者用户具有某些状态时才能够访问；如果此时用户访问，我们应该给予阻止或者给予跳转处理；
+这时就可以通过导航守卫进行设置。
+
+设置方法如下：
+
 ```js
+// 通过 router 对象设置导航守卫功能
 router.beforeEach(function (to, from, next) {
   console.log(to, from);
   next();
 });
 ```
 
+示例的意思是：在每一条路由被触发之前，都可以执行的导航守卫功能。内部需要传入一个回调函数，这个回调函数接收了三个参数：
+
+- `to`: 要跳转到的路由，是一个对象解构
+- `frome`: 从哪个路由来的，也是一个路由信息对象
+
+> 通过 `to` 和 `from` 可以判断从哪个路由来？有哪些状态？是否满足访问目标路由的状态？
+
+- `next`: 通过 `to` 和 `from` 判断是否满足条件可以通过当前守卫的功能，如果通过那就调用 `next()`, 也就是可以进行下一步操作了; 如果没有调用 `next`, 那么意味着功能走到这里就停止了,无法继续完成导航了。
+
+> 所以我们应该确保 `next` 在任何的导航守卫中，都应该被调用一次, 否则导航就停止了。
+
+next 除了可以放行外，还可以传入一些参数。比如我们觉得用户不能继续进行导航操作的时候，我们可以在 `next` 中传入一个 `false`, 用来阻止本次导航。
+
+如果我们并不是完全阻止，如果用户不满足条件，可以让他访问一个新的页面(比如访问需要登陆的页面，但是用户由没有登陆，就帮用户跳转到登陆页面), 就可以在 `next` 方法中传入一个 `/xx` 地址的字符串，或者传入一个对象 `{path: '/xx'}`。(此时 `next` 方法中传入的参数和 `<router-link>` 的 `to` 中传入的数据是相同的)
+
+---
+
+总结：
+
+- `next` 可以且仅可以调用一次
+- `next` 的参数不写和写 `false` 效果一样，但是写 false 语义更强，表示阻止本次导航
+- `next` 中可以传入路由地址，标识终止当前导航，导航到新的 url 上
+
 ### History 模式
 
-需要通过 Vue Router 实例的 `mode` 选项来设置，这样 URL 会更加美观，但同样需要后端支持避免问题。
+> 通过观察可以发现，导航栏中总是有 `#`，因为 VueRouter 默认是使用 `hash` 方式实现的，因为 hash 模式的兼容性更好；
+> VueRouter 也提供了 `history` 模式。
+
+使用 History 需要通过 Vue Router 实例的 `mode` 选项来设置，这样 URL 会更加美观，但同样需要后端支持避免问题。
 
 ```js
 var router = new VueRouter({
-  mode: 'history',
+  mode: 'history', // 使用 history 模式
   routes: [
     // ...
   ]
 });
 ```
-
