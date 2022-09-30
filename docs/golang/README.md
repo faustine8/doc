@@ -8,7 +8,7 @@ export GOROOT=/usr/local/go
 # 项目程序目录
 export GOPATH=/Users/faustine/go
 export GOBIN=$GOPATH/bin
-export PATH=$PATH:/usr/local/go
+export PATH=$PATH:/usr/local/go/bin
 ```
 
 ```shell

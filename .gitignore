@@ -17,4 +17,5 @@ software
 # macOS
 .DS_Store
 
+dist
 .xlsx
