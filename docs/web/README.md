@@ -75,3 +75,17 @@ sudo npm install -g yo
 sudo npm install -g generator-webapp
 
 ```
+
+---
+
+WebStorm 设置
+
+去除html注释默认加空格并以行开始位置对齐
+
+File =>Settings =>Editor=>Code Style =>HTML=> Code Genneration
+
+把以下两项的√取消即可
+
+设置 JS 使用单引号和 2 个空格缩进，也在这里
+
+方法声明后面要加空格, 对象字面量大括号添加空格，

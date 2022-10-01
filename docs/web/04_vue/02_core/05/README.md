@@ -171,6 +171,20 @@ npm i element-ui -S
 
 element-ui 中有许多组件，引⼊是可以采⽤两种⽅式，完整引⼊或按需引⼊，不同的引⼊⽅式根据组件的使⽤数量决定，最终影响打包后的⽂件体积。这⾥的项⽬采⽤完整引⼊⽅式。
 
+```js
+// 引入 Element
+import ElementUI from 'element-ui'
+// 引入 Element 的主题文件
+import 'element-ui/lib/theme-chalk/index.css'
+
+// 将 Element 注册为 Vue 插件
+Vue.use(ElementUI)
+```
 
 
+---
+
+子组件什么时候应该放到 `components` 目录中呢？答：如果单独不能形成一个页面，只是页面中的一个小功能区域，这种情况就可以放到 components 目录中。
+
+那什么时候和 `index.vue` 同级来写呢？答：如果组件是一个独立页面，能够独当一面，就可以直接和 `index.vue` 同级别书写。
 
