@@ -188,3 +188,200 @@ Vue.use(ElementUI)
 
 那什么时候和 `index.vue` 同级来写呢？答：如果组件是一个独立页面，能够独当一面，就可以直接和 `index.vue` 同级别书写。
 
+## Vuex
+
+虽然完成了登录功能，但实际上现在的后台不登录也能访问(访问对应 URL), 这种"有⻔⽆墙"的情况好像让我们实现的登录功能变得毫⽆意义。
+
+为了让登录变得有意义：
+
+1. 应当在⽤户登录成功后给⽤户⽣成⼀个标记(令牌), 并将这个令牌保存起来。
+2. 在⽤户访问任意需要登录的⻚⾯(组件)时都去**验证令牌**；
+3. 从⽽识别⽤户是否登录或是否有权访问对应功能。
+   1. 成功时，访问组件。
+   2. 失败时，进⾏提示。
+   
+如何能够让 `login` 组件中的数据可以被任意其他组件访问呢？这时可以使⽤ Vue 官⽅的状态管理⼯具 Vuex。
+
+---
+
+Vuex 是⼀个专为 Vue.js 应⽤程序开发的状态管理模式。
+
+Vuex ⽂档：<https://vuex.vuejs.org/zh/>
+
+- Vuex 是专⻔为 Vue.js 设计的状态管理库
+- 采⽤集中式的⽅式存储需要共享的数据
+- 本质就是⼀个 JavaScript 库
+- ⽤来解决复杂组件通信，数据共享的问题
+
+简单来说，Vuex ⽤来统⼀存储需要在多个组件间共享的状态(数据)，状态可以被任意组件操作，使组件通信变得易如反掌。
+
+如何判断是否需要使⽤ Vuex？
+
+- 多个视图依赖于同⼀状态。
+- 来⾃不同视图的⾏为需要变更同⼀状态。
+
+### 安装与基本使用
+
+```shell
+npm i vuex -S
+```
+
+> 使⽤ Vue CLI 创建项⽬时可以在项⽬选项中选择 Vuex，这时就⽆需单独安装了。
+
+创建 Vuex 实例 `store`，`store` 通常称为"容器"。
+
+```js
+// store/index.js
+import Vue from "vue";
+import Vuex from "vuex";
+
+Vue.use(Vuex);
+
+// 创建⼀个 Vuex 容器实例，⽤来存储需要在组件中共享的状态
+const store = new Vuex.Store({
+  state: {
+    count: 0
+  }
+});
+
+export default store;
+```
+
+在根 Vue 实例中引⼊ Vuex 作为插件。
+
+```js
+import Vue from 'vue'
+import App from './App.vue'
+import store from './store'
+
+new Vue({
+  store,
+  render: h => h(App)
+}).$mount('#app')
+```
+
+> 我们的项⽬通过 Vue CLI 创建时选择了 Vuex，所以创建与引⼊已经被 Vue CLI ⾃动完成了。
+
+通过 `Vue.use()` 引⼊ Vuex 后，Vuex 的功能被注⼊到根实例下的所有⼦组件中，可通过 `$store` 访问内部功能。
+
+### State
+
+容器中的 `state` ⽤于存储需要在组件间共享的数据，特点如下：
+
+- 容器中的数据可以被任意组件访问。
+- 容器中的数据为响应式数据。
+
+> 在浏览器中查看 Vue DevTools 的 Vuex 选项卡可以看到 Vuex 管理的状态。
+
+### Mutation
+
+> 更改 Vuex 的 `store` 中的状态的唯⼀⽅法是提交 `mutation`。Vuex 中的 `mutation` ⾮常类似于事件：每个 `mutation` 都有⼀个字符串的事件类型(type)和⼀个回调函数 (handler)。这个回调函数就是我们实际进⾏状态更改的地⽅，并且它会接受 state 作为第⼀个参数 -- 官方文档。
+
+简单来说，如果要修改 Vuex 中的 `state`，必须提前定义 Mutation 函数，需要时再进⾏提交(触发)。
+
+Mutation 接收 `state` 对象为第⼀个参数，⽤于操作 `state` 内的数据。
+
+```js
+export default new Vuex.Store({
+  state: {
+    user: 100
+  },
+  getters: {
+  },
+  mutations: {
+    etUser (state) {
+       state.user++
+    }
+  },
+  actions: {
+  },
+  modules: {
+  }
+})
+```
+
+在组件中通过 `vm.$store.commit('Mutation名称')` 提交 Mutation，执⾏操作。
+
+```js
+// login/index.vue
+methods: {
+ async onSubmit () {
+   console.log(this.$store.state.user)
+   this.$store.commit('setUser')
+   console.log(this.$store.state.user)
+   ...
+  }
+}
+```
+
+Mutation 还接收 `提交载荷(payload)`作为第⼆个参数，指的是 `commit()` 传⼊的额外数据，常在需要根据上下⽂数据修改 `state` 时使⽤。
+
+```js
+// store/index.js
+mutations: {
+  setUser (state, payload) {
+  state.user = payload
+  }
+}
+
+// login/index.vue
+methods: {
+  async onSubmit () {
+    this.$store.commit('setUser', '示例内容')
+    ...
+  }
+}
+```
+
+Mutation 的设置⽅式使 Vuex 的状态修改有迹可循，易于维护。
+
+假想⼀下，如果 `state` 可以通过赋值修改，⼀旦出错将⽆从下⼿。
+
+除此以外，Vue DevTools 还提供了⽤于 Vuex 更⾼级的调试⽅式 Time Travel。
+
+**Mutation 必须为同步函数**
+
+由于 DevTools 提供了 Mutation ⽇志功能，为了确保功能正常，内部不能存在异步任务，否则 DelTools 将⽆法得知 Mutation 的准确调⽤顺序。
+如果需要进⾏异步操作，则需要使⽤ Vuex 的 Action。
+
+> 如果不使用 action, 直接在 mutation 中多次调用异步方法(如: setTimeout), 会不被识别，还是会直接按照代码书写顺序执行。
+
+### Action
+
+> 将含有异步的操作放到 `action` 中，将同步功能放到 `mutation` 当中，将同步和异步的代码分成两部分，这样才能让代码正常的调试。
+
+Action 类似于 mutation，不同在于：
+
+- Action 提交的是 `mutation`，⽽不是直接变更状态。
+- Action 可以包含任意异步操作。
+
+Action 函数接受⼀个与 `store` 实例具有相同⽅法和属性的 `context` 对象，因此你可以调⽤ `context.commit` 提交⼀个 mutation。
+
+```js
+// store/index.js
+actions: {
+  addAction (context) {
+    setTimeout(function () {
+      context.commit('setUser')
+    }, 1000)
+  }
+}
+```
+
+> 这就是将需要异步的操作(`setTimeout`)放在 `actions` 中，将同步的操作(`setUser`)放在 `mutations` 中。
+> 此时，如果在组件中多次调用异步功能，能够按照时间顺序正常执行和正常呗 Vuex 监控。
+
+Action 通过 `vm.$store.dispatch` ⽅法触发，参数1为 `action` 名称，参数2为 `payload`.
+
+```js
+// login/index.vue
+methods: {
+  async onSubmit () {
+    this.$store.dispatch('addAction')
+    ...
+  }
+}
+```
+
+> Vuex 核⼼概念还有 Getter 与 Module 功能，可通过⽂档学习。
+
