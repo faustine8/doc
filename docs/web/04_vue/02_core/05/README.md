@@ -385,3 +385,28 @@ methods: {
 
 > Vuex 核⼼概念还有 Getter 与 Module 功能，可通过⽂档学习。
 
+---
+
+在声明周期钩子中，都不建议直接书写业务逻辑，建议仅仅调用封装好的方法。
+具体功能如何实现，在 `methods` 里面去处理。如果后期需要修改，只需要到 `methods` 中去找具体的功能就可以了。
+
+---
+
+```html
+<el-dropdown-item
+    divided
+    @click.native="handleLogout"
+>退出</el-dropdown-item>
+```
+
+表示将点击事件绑定到根元素上。
+
+这里的 `<el-dropdown-item>` 并不是原生的标签，Element 的所有自定义标签，最终渲染到页面上都是一个个的 `class` 属性的值。
+通过元素审查可以发现，最终这个标签渲染到页面上实际上是一个 `<li>`, `.native` 修饰符的意思是"将当前事件绑定到根元素上", 
+在页面上就是这个最终渲染出来的拥有 `el-dropdown-item` 的 class 属性的 `<li>` 标签元素。
+
+---
+
+新增或保存接口,调用不成功的时候,看看是不是添加了 `id` 属性? 
+
+
