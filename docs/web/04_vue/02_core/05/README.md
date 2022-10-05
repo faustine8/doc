@@ -409,4 +409,48 @@ methods: {
 
 新增或保存接口,调用不成功的时候,看看是不是添加了 `id` 属性? 
 
+如果传递了 `id` 属性, 就必须有值, 这时会被当成修改操作,否则会报错; 如果要新增, 就不要传递 id 属性, `{ id: ''}` 这样会报错.
 
+---
+
+在写样式的时候, 如果需要选择当前组件内部的组件元素, 需要使用 "深度作用选择器".
+
+反例:
+
+```scss
+.avatar-uploader .el-upload {
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.avatar-uploader .el-upload:hover {
+  border-color: #409EFF;
+}
+```
+
+正例:
+
+```scss
+::v-deep .avatar-uploader .el-upload {
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+::v-deep .avatar-uploader .el-upload:hover {
+  border-color: #409EFF;
+}
+```
+
+---
+
+`$emit()` 使用:
+
+```js
+this.$emit('input', data.data.name) // 触发 input 事件,值会被保存到组件(如:父组件中的 <list-demo> 标签)元素的 value 属性中
+```
