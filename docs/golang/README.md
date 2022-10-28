@@ -9,6 +9,10 @@ export GOROOT=/usr/local/go
 export GOPATH=/Users/faustine/go
 export GOBIN=$GOPATH/bin
 export PATH=$PATH:/usr/local/go/bin
+
+# 使用 GOPATH 就够了，不再需要 GOROOT
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOPATH/bin
 ```
 
 ```shell
@@ -25,3 +29,19 @@ go install github.com/swaggo/swag/cmd/swag@latest
 swag -v
 ```
 
+代码格式化
+
+```shell
+# 增强版的 go fmt
+go install golang.org/x/tools/cmd/goimports@latest
+
+go install golang.org/x/lint/golint@latest
+```
+
+终极版
+
+```shell
+brew install golangci-lint
+brew upgrade golangci-lint
+
+```
