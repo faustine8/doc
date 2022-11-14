@@ -96,18 +96,75 @@ npm install parcel-bundler -D
 
 目录结构
 
+### 导入 Snabbdom
 
+#### Snabbdom 文档
 
+看文档的意义
 
+- 学习任何一个库都要先看文档
+- 通过文档了解库的作用
+- 看文档中提供的示例，自己快速实现一个 demo
+- 通过文档查看 API 的使用
 
+Snabbdom 文档
 
+- <https://github.com/snabbdom/snabbdom>
+- 当前版本 v2.1.0
 
+---
 
+#### 导入
 
+安装 Snabbdom
 
+```shell
+npm intall snabbdom@2.1.0
+```
 
+导入 Snabbdom
 
+Snabbdom 的两个核心函数 `init` 和 `h()`
 
+- `init()` 是一个高阶函数，返回 `patch()`
+- `h()` 返回虚拟节点 VNode，这个函数我们在使用 Vue.js 的时候见过
 
+文档中导入的方式
 
+```js
+import { init } from 'snabbdom/init'
+import { h } from 'snabbdom/h'
+const patch = init([])
+```
 
+实际导入的方式
+
+parcel/webpack 4 不支持 package.json 中的 `exports` 字段
+
+```js
+import { init } from 'snabbdom/build/package/init'
+import { h } from 'snabbdom/build/package/h'
+```
+
+### Snabbdom 中的模块
+
+#### 模块的作用
+
+- Snabbdom 的核心库并不能处理 DOM 元素的属性/样式/事件等，可以通过注册 Snabbdom 默认提供的模块来实现
+- Snabbdom 中的模块可以用来扩展 Snabbdom 的功能
+- Snabbdom 中的模块的实现是通过注册全局的钩子函数来实现的
+
+#### 官方提供的模块
+
+- attributes
+- props
+- dataset
+- class
+- style
+- eventlisteners
+
+#### 模块的使用步骤
+
+- 导入需要的模块
+- `init()` 中注册模块
+- `h()` 函数的第二个参数处使用模块
