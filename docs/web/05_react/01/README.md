@@ -136,6 +136,67 @@ JSX 中也区分单标签和双标签, 单标签需要正确关闭, 如: `<img /
 
 ### JSX 事件操作
 
+#### 1.事件绑定
+
+驼峰命名直接添加即可.
+
+```js
+const handler = () => {
+  console.log('事件监听执行了')
+}
+
+<button onClick={handler}>点击触发事件</button>
+```
+
+> 注意: `{}` 里面直接写的就是事件函数名,不要 `()` 调用
+
+#### 2.事件监听传参
+
+方式一: 利用箭头函数内部调用事件函数时,传递参数
+
+```js
+const handler = (a, b) => {
+  console.log(a, b)
+}
+
+<button onClick={() => {handler(1, 2)}}>点击触发事件</button>
+```
+
+> 为什么这里不直接用 `handler(1, 2)` 函数调用,还要写个箭头函数呢? 因为直接调用函数,相当于将函数的执行结果(`undefined`)赋值给了 `click` 事件, 而此处需要的是一个事件函数.
+
+方式二: 利用 `bind()` 函数返回一个新的函数, 在事件发生时调用; 此时也可以传递参数.
+
+```js
+<button onClick={handler.bind(null, 100, 200)}>点击触发事件</button>
+```
+
+#### 3.获取事件对象
+
+默认情况下, 不需要传递实参, 形参列表第一个参数, 默认就是事件对象.
+
+利用箭头函数执行事件监听, 需要通过箭头函数将 ev 传递给事件监听函数.
+
+```js
+const handler = (ev) => {
+  console.log(ev)
+}
+
+<button onClick={handler}>点击触发事件</button>
+<button onClick={(ev) => {handler(ev)}}>点击触发事件</button>
+<button onClick={handler.bind(null)}>点击触发事件</button>
+```
+
+利用 `bind` 方法时, 如果有参数传递, 则最后一个形参默认是事件对象; 如果没有参数传递, 则第一个形参是事件对象.
+
+```js
+// 可以使用最后一个形参,直接接收
+const handler = (a, b, ev) => {
+  console.log(a, b)
+  console.log(ev)
+}
+
+<button onClick={handler.bind(null, 10, 20)}>点击触发事件</button>
+```
 
 ### 循环数据
 
