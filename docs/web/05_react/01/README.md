@@ -294,9 +294,147 @@ export default Radium(App);
 
 ### 设置外联样式
 
+#### 全局外联样式
+
+> 所有组件中,都可以直接使用.
+
+在 style.css 文件中定义样式
+
+```css
+body {
+    background-color: orange;
+}
+
+.box {
+    width: 100px;
+    height: 100px;
+    background-color: seagreen;
+}
+```
+
+在 index.js 中导入样式
+
+```js
+import './style.css';
+```
+
+在组件中使用样式
+
+```js
+<div className={'box'}>外联样式</div>
+```
+
+#### 组件级别的外联样式
+
+只有某一个组件可以使用.
+
+> 定义组件级外联样式的命名规范: `组件名.module.css`
+
+定义组件级样式 Test.module.css
+
+```css
+.item {
+    background-color: red;
+    width: 100px;
+    height: 100px;
+}
+```
+
+使用组件级样式
+
+```js
+import style from './Test.module.css';
+
+<p className={style.item}>Test中的p，使用自己的样式</p>
+```
+
+#### JS 中整合 CSS
+
+```shell
+# 安装插件
+npm i styled-components
+```
+
+```js
+import styled from "styled-components";
+
+// 自定义标签
+const SectionDiv = styled.div.attrs({
+    // 添加自定义属性
+    className: 'box1 box2'
+})`
+  width: 100px;
+  height: 100px;
+  background-color: hotpink;
+`
+
+function Test() {
+  return(
+    <div>
+      <SectionDiv />
+    </div>
+  )
+}
+
+export default Test
+```
 
 ### 创建组件
 
+#### 1.创建函数组件
+
+```js
+function App() {
+  return(
+    <div>创建组件</div>
+  )
+}
+
+export default App;
+```
+
+#### 2.创建类组件
+
+定义
+
+```js
+import React, { Component, Fragment } from "react";
+
+class About extends Component{
+    render() {
+        return(
+            <Fragment>这是About组件中的内容</Fragment>
+        )
+    }
+}
+
+export default About
+
+```
+
+使用
+
+```js
+import About from "./About";
+
+function App() {
+  return(
+    <div>
+      <About />
+    </div>
+  )
+}
+
+export default App;
+```
+
+注意:
+
+1. 必须继承 `Component` 类
+2. 组件名称的首字母必须大写, 在 React 当中可以用于区分组件和普通的标记
+3. 定义的时候,必须要有一个根元素. 如果不希望嵌套组件过多导致 `<div>` 层级过深, 可以使用 `<Fragment>` 标签作为根元素.
+
+> 导入了 `Fragment` 时, 在使用的时候可以简写为 `<></>`.(语法糖)
 
 ### 向组件传递数据
 
