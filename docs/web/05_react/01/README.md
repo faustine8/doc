@@ -438,15 +438,211 @@ export default App;
 
 ### 向组件传递数据
 
+1. 在组件身上添加属性,然后传递数据
+
+```js
+// 组件定义-类组件
+import React, {Component} from "react";
+
+class Header extends Component {
+  // 在类组件中，存在一个 props 属性，外部所传递进来的数据，都可以通过它访问
+  render() {
+    return (
+      <div>
+        <p>{this.props.name}</p>
+        <p>{this.props.age}</p>
+      </div>
+    )
+  }
+}
+
+export default Header
+```
+
+```js
+// 使用组件
+<Header name={"Jack"} age={100}/>
+```
+
+```js
+// 组件定义-函数式组件
+import React from "react";
+
+function About(props) { // 函数声明时,添加一个形参,用于接收"使用组件时传递的参数"
+  return(
+    <div>
+      <p>{ props.a }</p>
+      <p>{ props.b }</p>
+    </div>
+  )
+}
+
+export default About
+```
+
+```js
+// 使用组件
+<About a={10} b={100}/>
+```
+
+2. 传递对象
+
+> 使用较多. 将数据进行统一管理, 然后利用 `...` 展开操作, 直接传递给对应的组件.
+
+```js
+// 类组件-定义
+class Header extends Component{
+  // 在类组件中，存在一个 props 属性，外部所传递进来的数据，都可以通过它访问
+  render() {
+    const { name, age } = this.props
+    return(
+      <div>
+        <p>{ name }</p>
+        <p>{ age }</p>
+      </div>
+    )
+  }
+}
+
+// 使用
+const obj = {
+  name: 'john',
+  age: 19
+}
+<Header {...obj}/>
+```
+
+```js
+// 函数式组件-定义
+function About({ name, age }) {
+  return(
+    <div>
+      <p>{ name }</p>
+      <p>{ age }</p>
+    </div>
+  )
+}
+
+// 使用
+<About {...obj}/>
+```
+
+总结:
+
+- 函数式组件: 在函数组件内部,可以接收到外部的数据,内部直接访问即可.
+- 类组件: 在类组件内部,存在一个 props 属性, 外部传递的数据都存放在其中, 我们可以直接使用.
 
 ### 设置 props 默认值
 
+1. 针对函数式组件, 如果想要设置默认的 props 属性值, 则直接通过 `组件名.defaultProps = {}` 来设置
+
+```js
+About.defaultProps = {
+  name: 'john',
+  age: 10
+}
+```
+
+2. 针对类组件, 可以直接定义 `static defaultProps = {}` 来管理, 需要设置默认值的属性
+
+```js
+class Header extends Component{
+
+  static defaultProps = {
+    name: 'john',
+    age: 15
+  }
+
+  render() {
+    // 在类组件中，存在一个 props 属性，外部所传递进来的数据，都可以通过它访问
+    const { name, age } = this.props
+    return(
+      <div>
+        <p>{ name }</p>
+        <p>{ age }</p>
+      </div>
+    )
+  }
+}
+```
 
 ### 验证 props 数据类型
 
+为什么要对 `props` 中的属性进行类型校验呢?
+
+安装插件
+
+```shell
+npm i prop-types
+```
+
+完整代码如下:
+
+```js
+import React from "react";
+import PropTypes from 'prop-types'
+
+// 第一部分: 组件. 返回 JSX, 最终会被渲染成真实的 DOM
+function About({ name, age }) {
+  return(
+    <div>
+      <p>{ name }</p>
+      <p>{ age }</p>
+    </div>
+  )
+}
+
+// 第二部分: 数据默认值设置
+About.defaultProps = {
+  name: 111,
+  age: 10
+}
+
+// 第三部分: 数据类型校验
+About.propTypes = {
+  name: PropTypes.string.isRequired, // string 且必填
+  age: PropTypes.number
+}
+
+export default About
+```
 
 ### 向组件传递 JSX
 
+总结: 在子组件中接收父组件传递的 JSX 数据, 利用 props 的 children 属性
+
+```js
+// 类组件方式
+class Header extends Component{
+  render() {
+    return(
+      <div>
+        { this.props.children }
+      </div>
+    )
+  }
+}
+
+// 函数式组件方式
+function About(props) {
+  return (
+    <div>
+      {props.children}
+    </div>
+  )
+}
+```
+
+```js
+// 父组件中使用
+<Header>
+  <p>Header组件中的 p 标签</p>
+  <span>Header组件中的 span 标签</span>
+</Header>
+<About>
+  <p>About组件中的 p 标签</p>
+</About>
+```
 
 ### 组件布局实例
 
