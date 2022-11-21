@@ -200,9 +200,97 @@ const handler = (a, b, ev) => {
 
 ### 循环数据
 
+JSX 当中可以直接将数组中的数据解构
+
+```js
+const arr = [<p>1</p>, <p>22</p>, <p>333</p>]
+
+function App() {
+  return (
+    <div>{arr}</div>
+  )
+}
+```
+
+循环对象数组
+
+```js
+const arr = [
+  {
+    name: 'jack',
+    age: 40,
+    salary: 10000
+  },
+  {
+    name: 'john',
+    age: 18,
+    salary: 20000
+  }
+]
+
+function App() {
+  const ret = arr.map(item => {
+    return <li>{item.name}</li>
+  })
+  return <ul>{ret}</ul>
+}
+
+export default App;
+```
+
+循环对象数组,完整代码如下:
+
+```js
+const arr = [
+  {
+    id: 1,
+    name: 'jack',
+    age: 40,
+    salary: 10000
+  },
+  {
+    id: 2,
+    name: 'john',
+    age: 18,
+    salary: 20000
+  }
+]
+
+function App() {
+  const ret = arr.map(item => {
+    return(
+      <li key={item.id}>
+        <span>{item.name} - </span>
+        <span>{item.age} - </span>
+        <span>{item.salary}</span>
+      </li>
+    )
+  })
+  return <ul>{ret}</ul>
+}
+
+export default App;
+```
 
 ### 设置内联样式
 
+设置样式的时候, 应该将键值对放入对象中(`{}`)进行管理.
+
+```js
+<div style={{width: '100px'}}>样式处理</div>
+```
+
+内联样式默认不支持伪类和媒体查询样式设置.
+
+> 可以借助第三方包 `radium` 进行设置.
+
+```js
+import Radium from "radium";
+// ...
+export default Radium(App);
+```
+
+> 导入 Radium 函数, 将当前需要支持伪类操作的组件包裹之后再导出.
 
 ### 设置外联样式
 
