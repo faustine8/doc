@@ -643,15 +643,3 @@ function About(props) {
   <p>About组件中的 p 标签</p>
 </About>
 ```
-
-### 组件布局实例
-
-
-
-
-
-
-
-
-
-
