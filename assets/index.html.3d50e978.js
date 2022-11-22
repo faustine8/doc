@@ -1,0 +1,3 @@
+import{_ as e,c as n}from"./app.40df414d.js";const a={},s=n(`<h2 id="npm" tabindex="-1"><a class="header-anchor" href="#npm" aria-hidden="true">#</a> npm</h2><div class="language-bash ext-sh line-numbers-mode"><pre class="language-bash"><code><span class="token comment"># \u67E5\u770B\u5168\u5C40\u5B89\u88C5\u8FC7\u54EA\u4E9B\u63D2\u4EF6</span>
+<span class="token function">npm</span> list -g --dept <span class="token number">0</span>
+</code></pre><div class="line-numbers" aria-hidden="true"><span class="line-number">1</span><br><span class="line-number">2</span><br></div></div>`,2);function r(c,t){return s}var d=e(a,[["render",r],["__file","index.html.vue"]]);export{d as default};
