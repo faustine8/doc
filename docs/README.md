@@ -1,33 +1,30 @@
----
-lang: zh-CN
-title: 首页
-description: 首页
-home: true
-heroImage: https://cdn-statics.zmn.cn/_nuxt/img/logo_web.b793f2a.png
-heroText: 编程之旅
-tagline: For program, you know !
-actions:
-- text: Java
-  link: /java/
-  type: primary
-- text: BigData
-  link: /bigdata/
-  type: secondary
-- text: 前端
-  link: /web/
-  type: secondary
 
-features:
-- title: 实用至上
-  details: 各个技术都从入门到精通。知其然，更要知其所以然！
-- title: 系统性
-  details: 由浅入深的全方位的技术栈，不是「面向面试」的功利性学习，只为形成完整系统的知识脉络框架。
-- title: 享受生活
-  details: 我们登上并非我们所选择的舞台，演绎并非我们选择的剧本。与诸君共勉！
+# Doc
 
-footer: MIT Licensed | Copyright © 2022-present Faustine
+> 🕰️ 本项目已归档，仅作为个人开发历程的纪念保留。
 
----
+## 📝 项目简介
 
+这个项目是我在 2021~ 2023 年学习 Java/Big Data 时的课程笔记。它代表了我在那个阶段的探索与成长，虽然现在已经不再维护，但它仍然是我开发旅程中的重要一环。
 
+## 🔍 项目背景
+
+- 开发时间：2021 ~ 2023
+- 使用技术：Java / Vue / Spring Boot / MySQL / Hadoop
+- 初衷：构建一个全栈工程师所需要的技能的工具箱和 Cookbook
+
+## 🌟 我学到了什么
+
+- 如何使用 Vue 等现代前端开发, Hadoop 生态
+- 项目结构设计的基本思路
+- 遇到的挑战与解决方案
+- 对代码质量和架构的初步理解
+
+## 🧊 当前状态
+
+本项目已归档，不再维护。代码保持原样，仅供参考和回顾。
+
+## 🙋 致未来的自己
+
+> “每一行代码，都是成长的痕迹。感谢那个努力学习的自己。”
 
